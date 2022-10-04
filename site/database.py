@@ -108,10 +108,9 @@ def insertFromCSV(filename="outputfr.csv"):
         liste_line = file.readlines()
         with tqdm(total=len(liste_line)) as pbar:
             for line in liste_line:
-                add_line(line, liste_langue)
+                add_line(line.replace("\n", ""), liste_langue)
                 pbar.update()
 
 
 if __name__ == "__main__":
-    print(search("manger", langue="jawe")[0])
-    # insertFromCSV()
+    insertFromCSV()

@@ -18,7 +18,6 @@ if __name__ == "__main__":
 def fetch():
     keyword = json.loads(request.get_data())["keyword"]
     res = search(keyword)
-    print(res)
     return jsonify(res)
 
 
