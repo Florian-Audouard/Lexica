@@ -63,6 +63,14 @@ def add_line(line, liste_langue):
                     )
 
 
+def modifData(langue, text, sens):
+    with psycopg.connect(CONN_PARAMS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"INSERT INTO data (langue,sens, mots) VALUES((select id from langue where nom='{langue}'),'{sens}','{text}') ON CONFLICT (langue,sens) DO UPDATE SET  mots='{text}';"
+            )
+
+
 def search(
     keyword,
     langue="all",
@@ -79,11 +87,11 @@ def search(
                 element = element[0]
                 if langue == "all":
                     cur.execute(
-                        f"SELECT nom,mots FROM data JOIN langue ON data.langue = langue.id WHERE sens='{element}';"
+                        f"SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE sens='{element}';"
                     )
                 else:
                     cur.execute(
-                        f"SELECT nom,mots FROM data JOIN langue ON data.langue = langue.id WHERE (langue=(SELECT id FROM langue WHERE nom='{langueBase}') OR langue=(SELECT id FROM langue WHERE nom='{langue}')) AND sens='{element}';"
+                        f"SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE (langue=(SELECT id FROM langue WHERE nom='{langueBase}') OR langue=(SELECT id FROM langue WHERE nom='{langue}')) AND sens='{element}';"
                     )
 
                 res.append(cur.fetchall())

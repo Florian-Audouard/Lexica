@@ -1,55 +1,92 @@
 let input = document.querySelector("#search");
 
-function listeDesLangue() {
-	let res = [
-		"français",
-		"pije",
-		"fwâi",
-		"nemi 1 (Temala)",
-		"nemi 2 (côte est)",
-		"jawe",
-	];
-	return res;
+let listeLangues = [
+	"français",
+	"pije",
+	"fwâi",
+	"nemi 1 (Temala)",
+	"nemi 2 (côte est)",
+	"jawe",
+];
+
+let baseSelect = document.querySelector("#baseSelect");
+for (let langue of listeLangues) {
+	let tmp = document.createElement("option");
+	tmp.innerText = langue;
+	baseSelect.appendChild(tmp);
+}
+let resultSelect = document.querySelector("#resultSelect");
+let tmp = document.createElement("option");
+resultSelect.appendChild(tmp);
+tmp.innerText = "Toutes les langues";
+tmp.value = "all";
+for (let langue of listeLangues) {
+	let tmp = document.createElement("option");
+	tmp.innerText = langue;
+	resultSelect.appendChild(tmp);
 }
 
+function listeDesLangue() {
+	if (resultSelect.value === "all") {
+		return [baseSelect.value].concat(
+			listeLangues.filter((e) => e !== baseSelect.value)
+		);
+	} else {
+		return [baseSelect.value, resultSelect.value];
+	}
+}
+
+let editButton = document.querySelector("#edit");
+let sendButton = document.querySelector("#send");
+let saveChange = new Map();
+
 function createTableResult(tab) {
+	editButton.hidden = false;
+	sendButton.hidden = false;
 	let listeLangue = listeDesLangue();
-	let resultBox = document.querySelector("#result");
-	resultBox.innerHTML = "";
+	let resultTitle = document.querySelector("#resultTitle");
+	resultTitle.innerHTML = "";
 	let trTitle = document.createElement("tr");
 	for (let langue of listeLangue) {
 		let th = document.createElement("th");
 		th.innerHTML = langue;
 		trTitle.appendChild(th);
 	}
-	resultBox.appendChild(trTitle);
+	resultTitle.appendChild(trTitle);
+	let resultSearch = document.querySelector("#resultSearch");
+	resultSearch.innerHTML = "";
 	for (let ligne of tab) {
 		let tr = document.createElement("tr");
+		let [obj] = ligne.values();
+		let sens = obj.sens;
 		for (let langue of listeLangue) {
-			let th = document.createElement("th");
+			let td = document.createElement("td");
 			if (ligne.has(langue)) {
-				th.innerHTML = ligne.get(langue);
+				td.innerHTML = ligne.get(langue).text;
 			}
-			tr.appendChild(th);
+			td.sens = sens;
+			td.langue = langue;
+			tr.appendChild(td);
 		}
-		resultBox.appendChild(tr);
+		resultSearch.appendChild(tr);
 	}
 }
 
 function arrayToObject(arr) {
-	let res = [];
+	let tab = [];
 	for (let ligne of arr) {
 		tmp = new Map();
 		for (let element of ligne) {
-			tmp.set(element[0], element[1]);
+			tmp.set(element[0], { text: element[1], sens: element[2] });
 		}
-		res.push(tmp);
+		tab.push(tmp);
 	}
-	return res;
+	return tab;
 }
 
-document.querySelector("#searchButton").addEventListener("click", (_) => {
+function search() {
 	let keyword = input.value;
+	saveChange = new Map();
 	if (keyword !== "") {
 		fetch("/search", {
 			method: "POST",
@@ -59,6 +96,8 @@ document.querySelector("#searchButton").addEventListener("click", (_) => {
 			},
 			body: JSON.stringify({
 				keyword: keyword.toLowerCase(),
+				langueBase: baseSelect.value,
+				langueResult: resultSelect.value,
 			}),
 		})
 			.then((resp) => {
@@ -68,4 +107,54 @@ document.querySelector("#searchButton").addEventListener("click", (_) => {
 				createTableResult(arrayToObject(json));
 			});
 	}
+}
+
+document.querySelector("#searchButton").addEventListener("click", search);
+document.querySelector("#search").addEventListener("keypress", (event) => {
+	if (event.key.toLocaleLowerCase() === "enter") {
+		search();
+	}
+});
+
+document.querySelector("#table").addEventListener("keyup", (event) => {
+	if (event.target.tagName.toLowerCase() === "td") {
+		let sens = event.target.sens;
+		let langue = event.target.langue;
+		let text = event.target.innerText;
+		if (!saveChange.has(sens)) {
+			saveChange.set(sens, new Map());
+		}
+		saveChange.get(sens).set(langue, text);
+	}
+});
+
+editButton.addEventListener("click", (_) => {
+	for (let th of document.querySelectorAll("td")) {
+		th.contentEditable = true;
+	}
+});
+
+function mapToArray() {
+	let res = [];
+	for (let sens of saveChange) {
+		let reelSens = sens[0];
+		for (let element of sens[1]) {
+			res.push(element.concat([reelSens]));
+		}
+	}
+	return res;
+}
+
+sendButton.addEventListener("click", (_) => {
+	fetch("/edit", {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(mapToArray()),
+	}).then((resp) => {
+		console.log(resp);
+	});
+	// .then((json) => {});
 });

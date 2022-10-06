@@ -64,6 +64,18 @@ def get_parser():
 listCollumn = []
 
 
+def reassembleText(tuppleListe):
+    def t(x):
+        return (round(x[1]), round(x[0]))
+
+    tuppleListe.sort(key=t)
+    res = ""
+    for tupple in tuppleListe:
+        
+        res += tupple[2]
+    return res
+
+
 def transformDictToStr(dico, aprox):
     res = ""
     current = 0
@@ -73,8 +85,19 @@ def transformDictToStr(dico, aprox):
             for i in range(0, nb - current):
                 res += ";"
                 current += 1
-        # print(dico[x].split("\n"))
-        res += dico[x].replace("\n", "").replace("  ", " ").replace(";", ")") + ";"
+        print(
+            reassembleText(dico[x])
+            .replace("\n", "")
+            .replace("  ", " ")
+            .replace(";", ")")
+        )
+        res += (
+            reassembleText(dico[x])
+            .replace("\n", "")
+            .replace("  ", " ")
+            .replace(";", ")")
+            + ";"
+        )
         current += 1
     return res[0 : len(res) - 1]
 
@@ -119,9 +142,9 @@ def pageToCSV(page, file, aprox_Y=10, aprox_X=50):
                 dico[key_Y] = {}
             key_X = aproximatif(dico[key_Y], x, aprox_X)
             if key_X in dico[key_Y]:
-                dico[key_Y][key_X] += text
+                dico[key_Y][key_X].append((x, y, text))
             else:
-                dico[key_Y][key_X] = text
+                dico[key_Y][key_X] = [(x, y, text)]
     dicoToCSV(dico, file, aprox_X)
 
 

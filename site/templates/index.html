@@ -9,11 +9,22 @@
 </head>
 
 <body>
-    <input type="text" id="search" placeholder="chercher" value="">
-    <button id="searchButton">chercher</button>
-    <table>
-        <thead id="result"></thead>
-    </table>
+    <div id="searchDiv">
+        <input type="text" id="search" placeholder="chercher" value="">
+        <button id="searchButton">chercher</button>
+        <span><label>language de base</label><select id="baseSelect"></select></span>
+        <span><label>language arrivé</label><select id="resultSelect"></select></span>
+    </div>
+    <div id="tableDiv">
+        <button hidden id="edit">Editer</button>
+        <button hidden id="send">Mise a jour de la base de donnée</button>
+        <table id="table">
+            <thead id="resultTitle"></thead>
+            <tbody id="resultSearch"></tbody>
+        </table>
+    </div>
+
+
 </body>
 
 </html>
