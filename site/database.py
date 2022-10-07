@@ -1,3 +1,4 @@
+import re
 import psycopg
 
 # import asyncio
@@ -53,16 +54,22 @@ def validRandomSting():
 
 
 def add_line(line, liste_langue):
-    sens = validRandomSting()
     liste_line = line.split(";")
+    requete = f"""
+        WITH aleatoire AS(
+            SELECT gen_random_uuid() AS val
+        )
+        INSERT INTO data (langue , sens , mots) VALUES 
+        """
+    for langue, mot in zip(liste_langue, liste_line):
+        if mot != "":
+            mot = mot.replace("'", "''")
+            requete += f"""
+            ((SELECT id FROM langue WHERE nom='{langue}'),(SELECT (val) FROM aleatoire),'{mot}'),"""
+    requete = requete[0 : len(requete) - 1]
     with psycopg.connect(CONN_PARAMS) as conn:
         with conn.cursor() as cur:
-            for langue, mot in zip(liste_langue, liste_line):
-                if mot != "":
-                    mot = mot.replace("'", "''")
-                    cur.execute(
-                        f"INSERT INTO data (langue , sens , mots) VALUES ((SELECT id FROM langue WHERE nom='{langue}'),'{sens}','{mot}');"
-                    )
+            cur.execute(requete)
 
 
 def modifData(langue, text, sens):
