@@ -2,6 +2,8 @@ import psycopg
 
 # import asyncio
 
+# select mots from data where langue=(select id from langue where nom='pije') and mots ~* '^(\w{3,})\1';
+
 from dotenv import dotenv_values
 import os
 
@@ -66,6 +68,7 @@ def add_line(line, liste_langue):
 def modifData(langue, text, sens):
     with psycopg.connect(CONN_PARAMS) as conn:
         with conn.cursor() as cur:
+            # todo row trigger after insert
             cur.execute(
                 f"INSERT INTO data (langue,sens, mots) VALUES((select id from langue where nom='{langue}'),'{sens}','{text}') ON CONFLICT (langue,sens) DO UPDATE SET  mots='{text}';"
             )
@@ -79,8 +82,13 @@ def search(
     res = []
     with psycopg.connect(CONN_PARAMS) as conn:
         with conn.cursor() as cur:
+            # todo argument a la place {} ~ a la place de like
+            # todo https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-POSIX-REGEXP
+            # enfin https://www.postgresql.org/docs/current/pgtrgm.html
+            # peut etre https://www.postgresql.org/docs/current/fuzzystrmatch.html
+            # apres https://www.postgresql.org/docs/current/textsearch.html
             cur.execute(
-                f"SELECT sens FROM data WHERE mots LIKE '%{keyword}%' AND langue=(SELECT id FROM langue WHERE nom='{langueBase}');"
+                f"SELECT sens FROM data WHERE mots ILIKE '%{keyword}%' AND langue=(SELECT id FROM langue WHERE nom='{langueBase}');"
             )
             liste = cur.fetchall()
             for element in liste:

@@ -4,7 +4,7 @@ import json
 from database import search, modifData
 
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(os.path.dirname(__file__))
 
 
 app = Flask(__name__)

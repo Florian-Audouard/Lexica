@@ -71,7 +71,7 @@ def reassembleText(tuppleListe):
     tuppleListe.sort(key=t)
     res = ""
     for tupple in tuppleListe:
-        
+
         res += tupple[2]
     return res
 
@@ -138,6 +138,7 @@ def pageToCSV(page, file, aprox_Y=10, aprox_X=50):
             x, y, text = lobj.bbox[0], lobj.bbox[3], lobj.get_text()
             key_Y = aproximatif(dico, y, aprox_Y)
             addList(x, aprox_X)
+            # todo defaultdict
             if not key_Y in dico:
                 dico[key_Y] = {}
             key_X = aproximatif(dico[key_Y], x, aprox_X)
