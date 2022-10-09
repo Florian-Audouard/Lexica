@@ -1,3 +1,6 @@
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+
+
 DROP TABLE IF EXISTS data;
 DROP TABLE IF EXISTS langue;
 
@@ -12,3 +15,11 @@ CREATE TABLE data(
     sens text,
     mots text
 );
+
+CREATE OR REPLACE FUNCTION id_langue(l langue.nom%TYPE)
+    RETURNS SETOF langue.id%TYPE AS
+    $$
+        SELECT id FROM langue WHERE nom = l
+    $$
+    LANGUAGE SQL
+    STABLE;

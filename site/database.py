@@ -1,4 +1,3 @@
-import re
 import psycopg
 
 # import asyncio
@@ -9,8 +8,6 @@ from dotenv import dotenv_values
 import os
 
 import urllib.parse
-import random
-import string
 from tqdm import tqdm
 
 
@@ -31,29 +28,11 @@ def reset_table():
                 cur.execute(file.read())
 
 
-def add_langue(langue):
-    with psycopg.connect(CONN_PARAMS) as conn:
-        with conn.cursor() as cur:
-            cur.execute(f"INSERT INTO langue (nom) VALUES ('{langue}');")
+def add_langue(cur, langue):
+    cur.execute(f"INSERT INTO langue (nom) VALUES ('{langue}');")
 
 
-def validRandomSting():
-    with psycopg.connect(CONN_PARAMS) as conn:
-        with conn.cursor() as cur:
-            res = 1
-            while res != 0:
-                val = "".join(
-                    (
-                        random.choice(string.ascii_letters + string.digits)
-                        for i in range(25)
-                    )
-                )
-                cur.execute(f"SELECT COUNT(*) FROM DATA WHERE sens='{val}';")
-                res = cur.fetchone()[0]
-    return val
-
-
-def add_line(line, liste_langue):
+def add_line(cur, line, liste_langue):
     liste_line = line.split(";")
     requete = f"""
         WITH aleatoire AS(
@@ -67,9 +46,7 @@ def add_line(line, liste_langue):
             requete += f"""
             ((SELECT id FROM langue WHERE nom='{langue}'),(SELECT (val) FROM aleatoire),'{mot}'),"""
     requete = requete[0 : len(requete) - 1]
-    with psycopg.connect(CONN_PARAMS) as conn:
-        with conn.cursor() as cur:
-            cur.execute(requete)
+    cur.execute(requete)
 
 
 def modifData(langue, text, sens):
@@ -95,18 +72,31 @@ def search(
             # peut etre https://www.postgresql.org/docs/current/fuzzystrmatch.html
             # apres https://www.postgresql.org/docs/current/textsearch.html
             cur.execute(
-                f"SELECT sens FROM data WHERE mots ILIKE '%{keyword}%' AND langue=(SELECT id FROM langue WHERE nom='{langueBase}');"
+                """
+                SELECT sens FROM data 
+                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s) AND langue=(select id_langue(%(langueBase)s));""",
+                {"keyword": keyword, "langueBase": langueBase},
             )
+            # si erreur avec similarity
+            # GRANT ALL ON DATABASE lexica TO lexica;
             liste = cur.fetchall()
             for element in liste:
                 element = element[0]
                 if langue == "all":
                     cur.execute(
-                        f"SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE sens='{element}';"
+                        "SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE sens=%(element)s;",
+                        {"element": element},
                     )
                 else:
                     cur.execute(
-                        f"SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE (langue=(SELECT id FROM langue WHERE nom='{langueBase}') OR langue=(SELECT id FROM langue WHERE nom='{langue}')) AND sens='{element}';"
+                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id 
+                                WHERE (langue=(select id_langue(%(langueBase)s)) 
+                                    OR langue=(select id_langue(%(langue)s))) AND sens=%(element)s;""",
+                        {
+                            "langueBase": langueBase,
+                            "langue": langue,
+                            "element": element,
+                        },
                     )
 
                 res.append(cur.fetchall())
@@ -124,15 +114,17 @@ def insertFromCSV(filename="outputfr.csv"):
         "nemi 2 (côte est)",
         "jawe",
     ]
-    for langue in liste_langue:
-        add_langue(langue)
 
-    with open(filename, "r") as file:
-        liste_line = file.readlines()
-        with tqdm(total=len(liste_line)) as pbar:
-            for line in liste_line:
-                add_line(line.replace("\n", ""), liste_langue)
-                pbar.update()
+    with psycopg.connect(CONN_PARAMS) as conn:
+        with conn.cursor() as cur:
+            for langue in liste_langue:
+                add_langue(cur, langue)
+            with open(filename, "r") as file:
+                liste_line = file.readlines()
+                with tqdm(total=len(liste_line)) as pbar:
+                    for line in liste_line:
+                        add_line(cur, line.replace("\n", ""), liste_langue)
+                        pbar.update()
 
 
 if __name__ == "__main__":
