@@ -1,70 +1,99 @@
+"""_summary_
+
+    Returns:
+        _type_: _description_
+    """
+
+import os
+import urllib.parse
 import psycopg
+
+from dotenv import dotenv_values
+from tqdm import tqdm
 
 # import asyncio
 
-# select mots from data where langue=(select id from langue where nom='pije') and mots ~* '^(\w{3,})\1';
-
-from dotenv import dotenv_values
-import os
-
-import urllib.parse
-from tqdm import tqdm
-
-
+# select mots from data
+# where langue=(select id from langue where nom='pije') and mots ~* '^(\w{3,})\1';
 os.chdir(os.path.dirname(__file__))
 
 config = dotenv_values(".env")
 
-filename_schema = "database/database.sql"
+FILENAME_SHEMA = "database/database.sql"
 
 options = urllib.parse.quote_plus("--search_path=modern,public")
 CONN_PARAMS = f"postgresql://{config['USER']}:{config['PASSWORD']}@{config['HOST']}:{config['PORT']}/{config['DATABASE']}?options={options}"  # pylint: disable=line-too-long
 
 
 def reset_table():
-    with psycopg.connect(CONN_PARAMS) as conn:
+    """_summary_"""
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            with open(filename_schema, "r", encoding="utf-8") as file:
+            with open(FILENAME_SHEMA, "r", encoding="utf-8") as file:
                 cur.execute(file.read())
 
 
 def add_langue(cur, langue):
-    cur.execute(f"INSERT INTO langue (nom) VALUES ('{langue}');")
+    """_summary_
+
+    Args:
+        cur (_type_): _description_
+        langue (_type_): _description_
+    """
+    cur.execute("INSERT INTO langue (nom) VALUES (%(langue)s);", {"langue": langue})
 
 
-def add_line(cur, line, liste_langue):
+def add_line(cur, line, liste_langue, count):
+    """_summary_
+
+    Args:
+        cur (_type_): _description_
+        langue (_type_): _description_
+    """
     liste_line = line.split(";")
-    requete = f"""
-        WITH aleatoire AS(
-            SELECT gen_random_uuid() AS val
-        )
-        INSERT INTO data (langue , sens , mots) VALUES 
-        """
+    num_page = liste_line[len(liste_line) - 1]
+    del liste_line[len(liste_line) - 1]
+    requete = "INSERT INTO data (langue , sens , mots , numeroPage) VALUES "
     for langue, mot in zip(liste_langue, liste_line):
         if mot != "":
             mot = mot.replace("'", "''")
             requete += f"""
-            ((SELECT id FROM langue WHERE nom='{langue}'),(SELECT (val) FROM aleatoire),'{mot}'),"""
-    requete = requete[0 : len(requete) - 1]
+            ((select id_langue('{langue}')),'{count}','{mot}','{num_page}'),"""
+    requete = requete[0 : len(requete) - 1] + ";"
     cur.execute(requete)
 
 
-def modifData(langue, text, sens):
-    with psycopg.connect(CONN_PARAMS) as conn:
+def modif_data(langue, text, sens):
+    """_summary_
+
+    Args:
+        cur (_type_): _description_
+        langue (_type_): _description_
+    """
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             # todo row trigger after insert
             cur.execute(
-                f"INSERT INTO data (langue,sens, mots) VALUES((select id from langue where nom='{langue}'),'{sens}','{text}') ON CONFLICT (langue,sens) DO UPDATE SET  mots='{text}';"
+                """INSERT INTO data (langue,sens, mots)
+                        VALUES((langue=(select id_langue(%(langue)s))),%(sens)s,%(text)s)
+                        ON CONFLICT (langue,sens) DO UPDATE SET  mots=%(text)s;""",
+                {"langue": langue, "text": text, "sens": sens},
             )
 
 
 def search(
     keyword,
     langue="all",
-    langueBase="français",
+    langue_base="français",
 ):
+    """_summary_
+
+    Args:
+        cur (_type_): _description_
+        langue (_type_): _description_
+    """
     res = []
-    with psycopg.connect(CONN_PARAMS) as conn:
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             # todo argument a la place {} ~ a la place de like
             # todo https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-POSIX-REGEXP
@@ -73,9 +102,10 @@ def search(
             # apres https://www.postgresql.org/docs/current/textsearch.html
             cur.execute(
                 """
-                SELECT sens FROM data 
-                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s) AND langue=(select id_langue(%(langueBase)s));""",
-                {"keyword": keyword, "langueBase": langueBase},
+                SELECT sens FROM data
+                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
+                    AND langue=(select id_langue(%(langueBase)s));""",
+                {"keyword": keyword, "langueBase": langue_base},
             )
             # si erreur avec similarity
             # GRANT ALL ON DATABASE lexica TO lexica;
@@ -84,16 +114,17 @@ def search(
                 element = element[0]
                 if langue == "all":
                     cur.execute(
-                        "SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id WHERE sens=%(element)s;",
+                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id
+                            WHERE sens=%(element)s;""",
                         {"element": element},
                     )
                 else:
                     cur.execute(
-                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id 
-                                WHERE (langue=(select id_langue(%(langueBase)s)) 
-                                    OR langue=(select id_langue(%(langue)s))) AND sens=%(element)s;""",
+                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id
+                                WHERE (langue=(select id_langue(%(langueBase)s))
+                                OR langue=(select id_langue(%(langue)s))) AND sens=%(element)s;""",
                         {
-                            "langueBase": langueBase,
+                            "langueBase": langue_base,
                             "langue": langue,
                             "element": element,
                         },
@@ -104,7 +135,13 @@ def search(
     return res
 
 
-def insertFromCSV(filename="outputfr.csv"):
+def insert_from_csv(filename="output.csv"):
+    """_summary_
+
+    Args:
+        filename (str, optional): _description_. Defaults to "output.csv".
+    """
+    filename = "release/" + filename
     reset_table()
     liste_langue = [
         "français",
@@ -115,17 +152,19 @@ def insertFromCSV(filename="outputfr.csv"):
         "jawe",
     ]
 
-    with psycopg.connect(CONN_PARAMS) as conn:
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             for langue in liste_langue:
                 add_langue(cur, langue)
-            with open(filename, "r") as file:
+            with open(filename, "r", encoding="utf-8") as file:
                 liste_line = file.readlines()
                 with tqdm(total=len(liste_line)) as pbar:
+                    count = 0
                     for line in liste_line:
-                        add_line(cur, line.replace("\n", ""), liste_langue)
+                        add_line(cur, line.replace("\n", ""), liste_langue, count)
+                        count += 1
                         pbar.update()
 
 
 if __name__ == "__main__":
-    insertFromCSV()
+    insert_from_csv()

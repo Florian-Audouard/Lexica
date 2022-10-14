@@ -1,4 +1,15 @@
-from pdfminer.layout import LAParams, LTTextBox
+"""_summary_
+
+    Returns:
+        _type_: _description_
+"""
+
+import collections
+
+import argparse
+
+from pathlib import Path
+
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager
 from pdfminer.pdfinterp import PDFPageInterpreter
@@ -6,13 +17,10 @@ from pdfminer.converter import PDFPageAggregator
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import resolve1
-
-import collections
-
+from pdfminer.layout import LAParams, LTTextBox
 
 from tqdm import tqdm
-import argparse
-from pathlib import Path
+
 
 # import os
 # os.chdir(os.path.dirname(__file__))
@@ -35,64 +43,80 @@ def get_parser():
         help="indique la page que l'on veut transformer",
     )
     parser.add_argument(
-        "--filename",
-        "-f",
+        "--output",
+        "-o",
         action="store",
         default="output.csv",
         help="indique le nom du fichier de sortie",
     )
     parser.add_argument(
-        "--aprox_X",
+        "--filename",
+        "-f",
+        action="store",
+        default="hienghene-Fr.pdf",
+        help="indique le nom du pdf d'entré",
+    )
+    parser.add_argument(
+        "--aprox_x",
         "-ax",
         action="store",
         default=70,
         type=int,
-        help="indique le nom du fichier de sortie",
+        help="aproximation en hauteur",
     )
     parser.add_argument(
-        "--aprox_Y",
+        "--aprox_y",
         "-ay",
         action="store",
         default=10,
         type=int,
-        help="indique le nom du fichier de sortie",
+        help="aproximation en largeur",
     )
 
     return parser
 
 
-listCollumn = []
+list_column = []
 
 
-def reassembleText(tuppleListe):
-    def t(x):
-        return (round(x[1]), round(x[0]))
+def reassemble_text(tupple_liste):
+    """_summary_
 
-    tuppleListe.sort(key=t)
+    Args:
+        tuppleListe (_type_): _description_
+    """
+
+    def my_sort(element):
+        return (round(element[1]), round(element[0]))
+
+    tupple_liste.sort(key=my_sort)
     res = ""
-    for tupple in tuppleListe:
+    for tupple in tupple_liste:
 
         res += tupple[2]
     return res
 
 
-def transformDictToStr(dico, aprox):
+def transform_dict_to_str(dico, aprox):
+    """_summary_
+
+    Args:
+        dico (_type_): _description_
+        aprox (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     res = ""
     current = 0
-    for x in dico:
-        nb = listCollumn.index(aproximatif(listCollumn, x, aprox))
-        if nb > current:
-            for i in range(0, nb - current):
+    for dico_element in dico:
+        empty_space = list_column.index(aproximatif(list_column, dico_element, aprox))
+        if empty_space > current:
+            for _ in range(0, empty_space - current):
                 res += ";"
                 current += 1
-        print(
-            reassembleText(dico[x])
-            .replace("\n", "")
-            .replace("  ", " ")
-            .replace(";", ")")
-        )
         res += (
-            reassembleText(dico[x])
+            reassemble_text(dico[dico_element])
             .replace("\n", "")
             .replace("  ", " ")
             .replace(";", ")")
@@ -102,90 +126,122 @@ def transformDictToStr(dico, aprox):
     return res[0 : len(res) - 1]
 
 
-def dicoToCSV(dico, file, aprox):
+def dico_to_csv(dico, file, aprox, num_page):
+    """_summary_
+
+    Args:
+        dico (_type_): _description_
+        file (_type_): _description_
+        aprox (_type_): _description_
+        num_page (_type_): _description_
+    """
     dico = collections.OrderedDict(sorted(dico.items(), reverse=True))
-    for i in dico:
-        dico[i] = collections.OrderedDict(sorted(dico[i].items()))
-    for i in dico:
+    for index in dico:
+        dico[index] = collections.OrderedDict(sorted(dico[index].items()))
+    for index in dico:
         if (
-            len(dico[i]) > 1
-            and aproximatif(listCollumn, list(dico[i])[0], aprox) == listCollumn[0]
+            len(dico[index]) > 2
+            and aproximatif(list_column, list(dico[index])[0], aprox) == list_column[0]
         ):
-            file.write(transformDictToStr(dico[i], aprox) + "\n")
+            file.write(
+                transform_dict_to_str(dico[index], aprox) + ";" + str(num_page) + "\n"
+            )
 
 
-def addList(val, approx):
-    if not aproximatif(listCollumn, val, approx) in listCollumn:
-        listCollumn.append(val)
-        listCollumn.sort()
+def add_list(val, approx):
+    """_summary_
+
+    Args:
+        val (_type_): _description_
+        approx (_type_): _description_
+    """
+    if not aproximatif(list_column, val, approx) in list_column:
+        list_column.append(val)
+        list_column.sort()
 
 
-def aproximatif(collection, i, degresAprox=10):
+def aproximatif(collection, test_y, degres_aprox=10):
+    """_summary_
+
+    Args:
+        collection (_type_): _description_
+        i (_type_): _description_
+        degresAprox (int, optional): _description_. Defaults to 10.
+
+    Returns:
+        _type_: _description_
+    """
     for key in collection:
-        if i < key + degresAprox and i > key - degresAprox:
+        if key - degres_aprox < test_y < key + degres_aprox:
             return key
-    return i
+    return test_y
 
 
-def pageToCSV(page, file, aprox_Y=10, aprox_X=50):
-    global listCollumn
-    listCollumn = []
+def page_to_csv(page, file, aprox_y, aprox_x, num_page):
+    """_summary_
+
+    Args:
+        page (_type_): _description_
+        file (_type_): _description_
+        aprox_y (_type_): _description_
+        aprox_x (_type_): _description_
+        num_page (_type_): _description_
+    """
+    global list_column
+    list_column = []
     interpreter.process_page(page)
     layout = device.get_result()
     dico = {}
     for lobj in layout:
         if isinstance(lobj, LTTextBox):
-            x, y, text = lobj.bbox[0], lobj.bbox[3], lobj.get_text()
-            key_Y = aproximatif(dico, y, aprox_Y)
-            addList(x, aprox_X)
+            coord_x, coord_y, text = lobj.bbox[0], lobj.bbox[3], lobj.get_text()
+            key_y = aproximatif(dico, coord_y, aprox_y)
+            add_list(coord_x, aprox_x)
             # todo defaultdict
-            if not key_Y in dico:
-                dico[key_Y] = {}
-            key_X = aproximatif(dico[key_Y], x, aprox_X)
-            if key_X in dico[key_Y]:
-                dico[key_Y][key_X].append((x, y, text))
+            if not key_y in dico:
+                dico[key_y] = {}
+            key_x = aproximatif(dico[key_y], coord_x, aprox_x)
+            if key_x in dico[key_y]:
+                dico[key_y][key_x].append((coord_x, coord_y, text))
             else:
-                dico[key_Y][key_X] = [(x, y, text)]
-    dicoToCSV(dico, file, aprox_X)
+                dico[key_y][key_x] = [(coord_x, coord_y, text)]
+    dico_to_csv(dico, file, aprox_x, num_page)
 
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
+    file_input = "pdf/" + args.filename
+    with open(file_input, "rb") as pdf_file:
+        rsrcmgr = PDFResourceManager()
+        laparams = LAParams()
+        device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+        interpreter = PDFPageInterpreter(rsrcmgr, device)
+        pages = PDFPage.get_pages(pdf_file)
 
-    pdf_file = open("hienghene-Fr.pdf", "rb")
-    rsrcmgr = PDFResourceManager()
-    laparams = LAParams()
-    device = PDFPageAggregator(rsrcmgr, laparams=laparams)
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    pages = PDFPage.get_pages(pdf_file)
+        parser_pdf = PDFParser(pdf_file)
+        document = PDFDocument(parser_pdf)
+        # This will give you the count of pages
+        nb_pages = resolve1(document.catalog["Pages"])["Count"]
+        START = 64
+        END = 252
+        i = 1
 
-    parser = PDFParser(pdf_file)
-    document = PDFDocument(parser)
-    # This will give you the count of pages
-    nbPages = resolve1(document.catalog["Pages"])["Count"]
-    start = 62
-    end = 252
-    i = 0
-
-    numeroPage = args.page
-
-    if numeroPage == 0:
-        with tqdm(total=nbPages - 1 - (nbPages - end) - start) as pbar:
-            f = open(args.filename, "w")
-            for page in pages:
-                if i > start and i < end:
-                    pageToCSV(page, f, args.aprox_Y, args.aprox_X)
-                    pbar.update()
-                i += 1
-            f.close()
-    else:
-        if numeroPage >= 0 and numeroPage < nbPages:
-            f = open(args.filename, "w")
-            for page in pages:
-                if i == numeroPage:
-                    pageToCSV(page, f, args.aprox_Y, args.aprox_X)
-                i += 1
-            f.close()
+        numero_page = args.page
+        file_output = "output/" + args.output
+        if numero_page == 0:
+            with tqdm(total=nb_pages - 1 - (nb_pages - END) - START) as pbar:
+                with open(file_output, "w", encoding="utf-8") as file:
+                    for page_pdf in pages:
+                        if START <= i <= END:
+                            page_to_csv(page_pdf, file, args.aprox_y, args.aprox_x, i)
+                            pbar.update()
+                        i += 1
         else:
-            print("Le numeros de page est en dehors du pdf")
-    pdf_file.close()
+            if 0 <= numero_page < nb_pages:
+                with open(file_output, "w", encoding="utf-8") as file:
+                    for page_pdf in pages:
+                        if i == numero_page:
+                            page_to_csv(page_pdf, file, args.aprox_y, args.aprox_x, i)
+                        i += 1
+            else:
+                print("Le numeros de page est en dehors du pdf")

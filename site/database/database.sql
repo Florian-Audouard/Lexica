@@ -12,9 +12,11 @@ CREATE TABLE langue(
 CREATE TABLE data(
     PRIMARY KEY(langue, sens),
     langue int REFERENCES langue(id),
-    sens text,
-    mots text
+    sens int,
+    mots text,
+    numeroPage int
 );
+
 
 CREATE OR REPLACE FUNCTION id_langue(l langue.nom%TYPE)
     RETURNS SETOF langue.id%TYPE AS
