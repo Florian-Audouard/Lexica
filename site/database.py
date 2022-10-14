@@ -74,10 +74,14 @@ def modif_data(langue, text, sens):
         with conn.cursor() as cur:
             # todo row trigger after insert
             cur.execute(
-                """INSERT INTO data (langue,sens, mots)
-                        VALUES((langue=(select id_langue(%(langue)s))),%(sens)s,%(text)s)
-                        ON CONFLICT (langue,sens) DO UPDATE SET  mots=%(text)s;""",
-                {"langue": langue, "text": text, "sens": sens},
+                """INSERT INTO data (langue , sens , mots , numeroPage)
+                        VALUES((select id_langue(%(langue)s)),%(sens)s,%(text)s,
+                        (SELECT DISTINCT numeroPage FROM data where sens=%(sens)s))""",
+                {
+                    "langue": langue,
+                    "text": text,
+                    "sens": sens,
+                },
             )
 
 
@@ -102,7 +106,7 @@ def search(
             # apres https://www.postgresql.org/docs/current/textsearch.html
             cur.execute(
                 """
-                SELECT sens FROM data
+                SELECT DISTINCT sens FROM data
                     WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
                     AND langue=(select id_langue(%(langueBase)s));""",
                 {"keyword": keyword, "langueBase": langue_base},
@@ -110,23 +114,27 @@ def search(
             # si erreur avec similarity
             # GRANT ALL ON DATABASE lexica TO lexica;
             liste = cur.fetchall()
-            for element in liste:
-                element = element[0]
+            for sens in liste:
+                sens = sens[0]
                 if langue == "all":
                     cur.execute(
                         """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id
-                            WHERE sens=%(element)s;""",
-                        {"element": element},
+                            WHERE data.id IN
+                            (SELECT max(data.id) AS id FROM data
+                                WHERE sens=%(sens)s GROUP BY langue);""",
+                        {"sens": sens},
                     )
                 else:
                     cur.execute(
-                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id
-                                WHERE (langue=(select id_langue(%(langueBase)s))
-                                OR langue=(select id_langue(%(langue)s))) AND sens=%(element)s;""",
+                        """SELECT nom,mots,sens,date_creation FROM data
+                                JOIN langue ON data.langue = langue.id
+                                    WHERE (langue=(select id_langue(%(langueBase)s))
+                                    OR langue=(select id_langue(%(langue)s))) AND sens=%(sens)s
+                                    ORDER BY date_creation DESC;""",
                         {
                             "langueBase": langue_base,
                             "langue": langue,
-                            "element": element,
+                            "sens": sens,
                         },
                     )
 
