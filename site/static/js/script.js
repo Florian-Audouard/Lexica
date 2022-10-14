@@ -1,30 +1,8 @@
 let input = document.querySelector("#search");
 
-let listeLangues = [
-	"français",
-	"pije",
-	"fwâi",
-	"nemi 1 (Temala)",
-	"nemi 2 (côte est)",
-	"jawe",
-];
-
-let baseSelect = document.querySelector("#baseSelect");
-for (let langue of listeLangues) {
-	let tmp = document.createElement("option");
-	tmp.innerText = langue;
-	baseSelect.appendChild(tmp);
-}
+let listeLangues = [];
 let resultSelect = document.querySelector("#resultSelect");
-let tmp = document.createElement("option");
-resultSelect.appendChild(tmp);
-tmp.innerText = "Toutes les langues";
-tmp.value = "all";
-for (let langue of listeLangues) {
-	let tmp = document.createElement("option");
-	tmp.innerText = langue;
-	resultSelect.appendChild(tmp);
-}
+let baseSelect = document.querySelector("#baseSelect");
 
 function listeDesLangue() {
 	if (resultSelect.value === "all") {
@@ -158,3 +136,29 @@ sendButton.addEventListener("click", (_) => {
 	});
 	// .then((json) => {});
 });
+
+async function main() {
+	let resp = await fetch("/listLangue", {
+		method: "GET",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		},
+	});
+	listeLangues = await resp.json();
+	for (let langue of listeLangues) {
+		let tmp = document.createElement("option");
+		tmp.innerText = langue;
+		baseSelect.appendChild(tmp);
+	}
+	let tmp = document.createElement("option");
+	resultSelect.appendChild(tmp);
+	tmp.innerText = "Toutes les langues";
+	tmp.value = "all";
+	for (let langue of listeLangues) {
+		let tmp = document.createElement("option");
+		tmp.innerText = langue;
+		resultSelect.appendChild(tmp);
+	}
+}
+main();

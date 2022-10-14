@@ -1,7 +1,7 @@
-from flask import Flask, jsonify, render_template, request
 import os
 import json
-from database import search, modif_data
+from flask import Flask, jsonify, render_template, request
+from database import search, modif_data, list_langue
 
 
 os.chdir(os.path.dirname(__file__))
@@ -11,12 +11,18 @@ app = Flask(__name__)
 
 
 @app.route("/search", methods=["POST"])
-def fetch():
+def fetch_search():
     result = json.loads(request.get_data())
     keyword = result["keyword"]
-    langueBase = result["langueBase"]
-    langueResult = result["langueResult"]
-    res = search(keyword, langue=langueResult, langue_base=langueBase)
+    langue_base = result["langueBase"]
+    langue_result = result["langueResult"]
+    res = search(keyword, langue=langue_result, langue_base=langue_base)
+    return jsonify(res)
+
+
+@app.route("/listLangue", methods=["GET"])
+def fetch_langue():
+    res = list_langue()
     return jsonify(res)
 
 
@@ -24,7 +30,6 @@ def fetch():
 def edit():
     for change in json.loads(request.get_data()):
         modif_data(change[0], change[1], change[2])
-        pass
     return "ok"
 
 

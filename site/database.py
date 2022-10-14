@@ -143,6 +143,17 @@ def search(
     return res
 
 
+def list_langue():
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute("SELECT nom FROM langue;")
+            tempory = cur.fetchall()
+            res = []
+            for langue in tempory:
+                res.append(langue[0])
+            return res
+
+
 def insert_from_csv(filename="output.csv"):
     """_summary_
 
