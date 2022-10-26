@@ -85,11 +85,7 @@ def modif_data(langue, text, sens):
             )
 
 
-def search(
-    keyword,
-    langue="all",
-    langue_base="français",
-):
+def search(keyword, langue, langue_base, offset):
     """_summary_
 
     Args:
@@ -106,31 +102,83 @@ def search(
             # apres https://www.postgresql.org/docs/current/textsearch.html
             cur.execute(
                 """
-                SELECT DISTINCT sens FROM data
+                SELECT DISTINCT count(sens) FROM data
                     WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
-                    AND langue=(select id_langue(%(langueBase)s));""",
-                {"keyword": keyword, "langueBase": langue_base},
+                    AND langue=(select id_langue(%(langueBase)s))""",
+                {
+                    "keyword": keyword,
+                    "langueBase": langue_base,
+                },
             )
+            count = cur.fetchone()[0]
+            print(count)
+            cur.execute(
+                """
+                SELECT DISTINCT sens,mots FROM data
+                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
+                    AND langue=(select id_langue(%(langueBase)s))
+                    ORDER BY mots
+                    LIMIT 25
+                    OFFSET %(offset)s;
+                    """,
+                {
+                    "keyword": keyword,
+                    "langueBase": langue_base,
+                    "offset": offset,
+                },
+            )
+
+            # pour des testes de taille (exemple chercher la lettre e)
+            # cur.execute(
+            #     """
+            #     SELECT DISTINCT count(sens) FROM data
+            #         WHERE mots ILIKE %(keyword)s
+            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #     {
+            #         "keyword": "%" + keyword + "%",
+            #         "langueBase": langue_base,
+            #     },
+            # )
+            # count = cur.fetchone()[0]
+            # cur.execute(
+            #     """
+            #     SELECT DISTINCT sens,mots FROM data
+            #         WHERE mots ILIKE %(keyword)s
+            #         AND langue=(select id_langue(%(langueBase)s))
+            #         ORDER BY mots
+            #         LIMIT 25
+            #         OFFSET %(offset)s;""",
+            #     {
+            #         "keyword": "%" + keyword + "%",
+            #         "langueBase": langue_base,
+            #         "offset": offset,
+            #     },
+            # )
+
             # si erreur avec similarity
             # GRANT ALL ON DATABASE lexica TO lexica;
             liste = cur.fetchall()
+            print(liste)
             for sens in liste:
                 sens = sens[0]
                 if langue == "all":
                     cur.execute(
-                        """SELECT nom,mots,sens FROM data JOIN langue ON data.langue = langue.id
+                        """SELECT nom,mots,sens,numeroPage 
+                            FROM data JOIN langue ON data.langue = langue.id
                             WHERE data.id IN
                             (SELECT max(data.id) AS id FROM data
                                 WHERE sens=%(sens)s GROUP BY langue);""",
                         {"sens": sens},
                     )
                 else:
+
                     cur.execute(
-                        """SELECT nom,mots,sens,date_creation FROM data
-                                JOIN langue ON data.langue = langue.id
-                                    WHERE (langue=(select id_langue(%(langueBase)s))
-                                    OR langue=(select id_langue(%(langue)s))) AND sens=%(sens)s
-                                    ORDER BY date_creation DESC;""",
+                        """SELECT nom,mots,sens,numeroPage FROM data JOIN langue ON data.langue = langue.id
+                            WHERE (langue=(select id_langue(%(langueBase)s))
+                                    OR langue=(select id_langue(%(langue)s)))
+                                AND data.id IN
+                            (SELECT max(data.id) AS id FROM data
+                                WHERE sens=%(sens)s GROUP BY langue);""",
                         {
                             "langueBase": langue_base,
                             "langue": langue,
@@ -140,7 +188,19 @@ def search(
 
                 res.append(cur.fetchall())
 
-    return res
+    return [res, count]
+
+
+def history(sens, langue):
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT date_creation,mots FROM data
+                    WHERE sens=%(sens)s and langue=(select id_langue(%(langue)s))
+                    ORDER BY date_creation desc;""",
+                {"sens": sens, "langue": langue},
+            )
+            return cur.fetchall()
 
 
 def list_langue():

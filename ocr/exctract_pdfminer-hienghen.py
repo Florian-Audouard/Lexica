@@ -8,6 +8,7 @@ import collections
 
 import argparse
 
+import os
 from pathlib import Path
 
 from pdfminer.pdfpage import PDFPage
@@ -22,8 +23,7 @@ from pdfminer.layout import LAParams, LTTextBox
 from tqdm import tqdm
 
 
-# import os
-# os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(__file__))
 
 
 def get_parser():
@@ -72,6 +72,7 @@ def get_parser():
         type=int,
         help="aproximation en largeur",
     )
+    parser.add_argument("--show", action="store_true")
 
     return parser
 
@@ -194,7 +195,13 @@ def page_to_csv(page, file, aprox_y, aprox_x, num_page):
     dico = {}
     for lobj in layout:
         if isinstance(lobj, LTTextBox):
-            coord_x, coord_y, text = lobj.bbox[0], lobj.bbox[3], lobj.get_text()
+            coord_x, coord_x_prime, coord_y, coord_y_prime, text = (
+                lobj.bbox[0],
+                lobj.bbox[2],
+                lobj.bbox[3],
+                lobj.bbox[1],
+                lobj.get_text(),
+            )
             key_y = aproximatif(dico, coord_y, aprox_y)
             add_list(coord_x, aprox_x)
             # todo defaultdict
@@ -233,7 +240,13 @@ if __name__ == "__main__":
                 with open(file_output, "w", encoding="utf-8") as file:
                     for page_pdf in pages:
                         if START <= i <= END:
-                            page_to_csv(page_pdf, file, args.aprox_y, args.aprox_x, i)
+                            page_to_csv(
+                                page_pdf,
+                                file,
+                                args.aprox_y,
+                                args.aprox_x,
+                                i,
+                            )
                             pbar.update()
                         i += 1
         else:
@@ -241,7 +254,14 @@ if __name__ == "__main__":
                 with open(file_output, "w", encoding="utf-8") as file:
                     for page_pdf in pages:
                         if i == numero_page:
-                            page_to_csv(page_pdf, file, args.aprox_y, args.aprox_x, i)
+                            page_to_csv(
+                                page_pdf,
+                                file,
+                                args.aprox_y,
+                                args.aprox_x,
+                                i,
+                            )
                         i += 1
+
             else:
                 print("Le numeros de page est en dehors du pdf")

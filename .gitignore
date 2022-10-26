@@ -6,4 +6,8 @@ output
 
 pdf
 
+lib
+
+test*.py
+
 .env
