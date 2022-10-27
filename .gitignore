@@ -7,7 +7,7 @@ output
 pdf
 
 lib
-
+*.csv
 test*.py
 
 .env

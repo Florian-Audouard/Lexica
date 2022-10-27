@@ -95,15 +95,46 @@ def search(keyword, langue, langue_base, offset):
     res = []
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            # todo argument a la place {} ~ a la place de like
-            # todo https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-POSIX-REGEXP
+            # argument a la place {} ~ a la place de like
+            # https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-POSIX-REGEXP
             # enfin https://www.postgresql.org/docs/current/pgtrgm.html
             # peut etre https://www.postgresql.org/docs/current/fuzzystrmatch.html
             # apres https://www.postgresql.org/docs/current/textsearch.html
+
+            # * REGEXP
+            # cur.execute(
+            #     """
+            #     SELECT DISTINCT count(sens) FROM data
+            #         WHERE mots ~* %(keyword)s
+            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #     {
+            #         "keyword": keyword,
+            #         "langueBase": langue_base,
+            #     },
+            # )
+            # count = cur.fetchone()[0]
+            # print(count)
+            # cur.execute(
+            #     """
+            #     SELECT DISTINCT sens FROM data
+            #         WHERE mots ~* %(keyword)s
+            #         AND langue=(select id_langue(%(langueBase)s))
+            #         ORDER BY sens
+            #         LIMIT 25
+            #         OFFSET %(offset)s;
+            #         """,
+            #     {
+            #         "keyword": keyword,
+            #         "langueBase": langue_base,
+            #         "offset": offset,
+            #     },
+            # )
+
+            # * TSQUERY
             cur.execute(
                 """
                 SELECT DISTINCT count(sens) FROM data
-                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
+                    WHERE to_tsvector(mots) @@ to_tsquery(%(keyword)s)
                     AND langue=(select id_langue(%(langueBase)s))""",
                 {
                     "keyword": keyword,
@@ -114,10 +145,10 @@ def search(keyword, langue, langue_base, offset):
             print(count)
             cur.execute(
                 """
-                SELECT DISTINCT sens,mots FROM data
-                    WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
+                SELECT DISTINCT sens FROM data
+                    WHERE to_tsvector(mots) @@ to_tsquery(%(keyword)s)
                     AND langue=(select id_langue(%(langueBase)s))
-                    ORDER BY mots
+                    ORDER BY sens
                     LIMIT 25
                     OFFSET %(offset)s;
                     """,
@@ -128,37 +159,64 @@ def search(keyword, langue, langue_base, offset):
                 },
             )
 
-            # pour des testes de taille (exemple chercher la lettre e)
+            # * METAPHONE
             # cur.execute(
             #     """
             #     SELECT DISTINCT count(sens) FROM data
-            #         WHERE mots ILIKE %(keyword)s
+            #         WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
             #         AND langue=(select id_langue(%(langueBase)s))""",
             #     {
-            #         "keyword": "%" + keyword + "%",
+            #         "keyword": keyword,
             #         "langueBase": langue_base,
             #     },
             # )
             # count = cur.fetchone()[0]
+            # print(count)
             # cur.execute(
             #     """
-            #     SELECT DISTINCT sens,mots FROM data
-            #         WHERE mots ILIKE %(keyword)s
+            #     SELECT DISTINCT sens FROM data
+            #         WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
             #         AND langue=(select id_langue(%(langueBase)s))
-            #         ORDER BY mots
+            #         ORDER BY sens
             #         LIMIT 25
-            #         OFFSET %(offset)s;""",
+            #         OFFSET %(offset)s;
+            #         """,
             #     {
-            #         "keyword": "%" + keyword + "%",
+            #         "keyword": keyword,
             #         "langueBase": langue_base,
             #         "offset": offset,
             #     },
             # )
 
-            # si erreur avec similarity
-            # GRANT ALL ON DATABASE lexica TO lexica;
+            # * SIMILARITY
+            # cur.execute(
+            #     """
+            #     SELECT DISTINCT count(sens) FROM data
+            #         WHERE similarity(mots,%(keyword)s) > 0.3
+            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #     {
+            #         "keyword": keyword,
+            #         "langueBase": langue_base,
+            #     },
+            # )
+            # count = cur.fetchone()[0]
+            # print(count)
+            # cur.execute(
+            #     """
+            #     SELECT sens,similarity(mots,%(keyword)s),mots FROM data
+            #         WHERE similarity(mots,%(keyword)s) > 0.3
+            #         AND langue=(select id_langue(%(langueBase)s))
+            #         ORDER BY sens
+            #         LIMIT 25
+            #         OFFSET %(offset)s;
+            #         """,
+            #     {
+            #         "keyword": keyword,
+            #         "langueBase": langue_base,
+            #         "offset": offset,
+            #     },
+            # )
             liste = cur.fetchall()
-            print(liste)
             for sens in liste:
                 sens = sens[0]
                 if langue == "all":
