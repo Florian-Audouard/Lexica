@@ -8,8 +8,8 @@
 import argparse
 
 import os
-import fitz
 from pathlib import Path
+import fitz  # pip install PyMuPDF
 
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager
@@ -62,8 +62,6 @@ def get_parser():
 
 def draw_rectangle(page, num_page, rectangle_pdf):
 
-    global list_column
-    list_column = []
     interpreter.process_page(page)
     layout = device.get_result()
     page = rectangle_pdf.load_page(num_page - 1)

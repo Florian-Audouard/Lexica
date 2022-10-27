@@ -5,7 +5,6 @@
 """
 
 import collections
-
 import argparse
 
 import os

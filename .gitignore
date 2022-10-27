@@ -9,5 +9,5 @@ pdf
 lib
 *.csv
 test*.py
-
+*.pyc
 .env
