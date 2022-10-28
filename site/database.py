@@ -17,7 +17,11 @@ from tqdm import tqdm
 # where langue=(select id from langue where nom='pije') and mots ~* '^(\w{3,})\1';
 os.chdir(os.path.dirname(__file__))
 
-config = dotenv_values(".env")
+if os.path.exists(".env"):
+    config = dotenv_values(".env")
+else:
+    config = dotenv_values("default.env")
+
 
 FILENAME_SHEMA = "database/database.sql"
 
