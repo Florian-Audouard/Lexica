@@ -1,3 +1,12 @@
+import {
+	createTableResult,
+	arrayToObject,
+	resetSaveChange,
+	listernerOnchangeTable,
+	editableTable,
+	sendButtonInit,
+} from "./function.js";
+
 let input = document.querySelector("#search");
 
 let listeLangues = [];
@@ -18,71 +27,9 @@ let editButton = document.querySelector("#edit");
 let sendButton = document.querySelector("#send");
 let nextButton = document.querySelector("#next");
 let prevButton = document.querySelector("#prev");
-let saveChange = new Map();
 
 const MAX_SIZE_TABLE = 25;
 
-function createTableResult(tab) {
-	editButton.hidden = false;
-	sendButton.hidden = false;
-	let listeLangue = listeDesLangue();
-	let resultTitle = document.querySelector("#resultTitle");
-	resultTitle.innerHTML = "";
-	let trTitle = document.createElement("tr");
-	let th;
-	for (let langue of listeLangue) {
-		th = document.createElement("th");
-		th.innerHTML = langue;
-		trTitle.appendChild(th);
-	}
-	th = document.createElement("th");
-	th.innerHTML = "page";
-	trTitle.appendChild(th);
-
-	resultTitle.appendChild(trTitle);
-	let resultSearch = document.querySelector("#resultSearch");
-	resultSearch.innerHTML = "";
-	for (let ligne of tab) {
-		let tr = document.createElement("tr");
-		let [obj] = ligne.values();
-		let sens = obj.sens;
-		let td;
-		for (let langue of listeLangue) {
-			td = document.createElement("td");
-			if (ligne.has(langue)) {
-				td.innerHTML = `<a class="linkHistory" target="_blank" rel="noopener noreferrer" href="historique?sens=${sens}&langue=${langue}">${
-					ligne.get(langue).text
-				}</a>`;
-			}
-			td.sens = sens;
-			td.langue = langue;
-			tr.appendChild(td);
-		}
-		test = "t";
-		td = document.createElement("td");
-		num = ligne.get(baseSelect.value).numeroPage;
-
-		td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="static/pdf/hienghene-Fr.pdf#page=${num}">${num}</a>`;
-		tr.appendChild(td);
-
-		resultSearch.appendChild(tr);
-	}
-}
-function arrayToObject(arr) {
-	let tab = [];
-	for (let ligne of arr) {
-		tmp = new Map();
-		for (let element of ligne) {
-			tmp.set(element[0], {
-				text: element[1],
-				sens: element[2],
-				numeroPage: element[3],
-			});
-		}
-		tab.push(tmp);
-	}
-	return tab;
-}
 function createPageCount(total, current) {
 	const nbPage = Math.trunc(total / MAX_SIZE_TABLE);
 	const actualPage = current / MAX_SIZE_TABLE + 1;
@@ -163,7 +110,7 @@ function clickPage(event) {
 }
 function search(keyword, langueBase, langueResult, offset) {
 	pageNum = offset / MAX_SIZE_TABLE + 1;
-	saveChange = new Map();
+	resetSaveChange();
 	if (keyword !== "") {
 		fetch("/search", {
 			method: "POST",
@@ -183,7 +130,13 @@ function search(keyword, langueBase, langueResult, offset) {
 			})
 			.then((json) => {
 				createPageCount(json.count, offset);
-				createTableResult(arrayToObject(json.table));
+				createTableResult(
+					arrayToObject(json.table),
+					baseSelect.value,
+					listeDesLangue(),
+					document.querySelector("#resultTitle"),
+					document.querySelector("#resultSearch")
+				);
 			});
 	}
 }
@@ -203,56 +156,19 @@ document.querySelector("#search").addEventListener("keypress", (event) => {
 	}
 });
 
-document.querySelector("#table").addEventListener("keyup", (event) => {
-	if (event.target.tagName.toLowerCase() === "td") {
-		let sens = event.target.sens;
-		let langue = event.target.langue;
-		let text = event.target.innerText;
-		if (!saveChange.has(sens)) {
-			saveChange.set(sens, new Map());
-		}
-		saveChange.get(sens).set(langue, text);
-	}
-});
+listernerOnchangeTable(document.querySelector("#table"));
 
-editButton.addEventListener("click", (_) => {
-	for (let th of document.querySelectorAll("td")) {
-		th.contentEditable = true;
-	}
-});
+editableTable(editButton);
 
-function mapToArray() {
-	let res = [];
-	for (let sens of saveChange) {
-		let reelSens = sens[0];
-		for (let element of sens[1]) {
-			res.push(element.concat([reelSens]));
-		}
-	}
-	return res;
-}
-
-sendButton.addEventListener("click", (_) => {
-	fetch("/edit", {
+sendButtonInit(sendButton);
+async function main() {
+	let resp = await fetch("/listLangue", {
 		method: "POST",
 		headers: {
 			Accept: "application/json",
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify(mapToArray()),
-	}).then((resp) => {
-		console.log(resp);
-	});
-	// .then((json) => {});
-});
-
-async function main() {
-	let resp = await fetch("/listLangue", {
-		method: "GET",
-		headers: {
-			Accept: "application/json",
-			"Content-Type": "application/json",
-		},
+		body: JSON.stringify({ livre: "all" }),
 	});
 	listeLangues = await resp.json();
 	for (let langue of listeLangues) {

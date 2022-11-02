@@ -1,10 +1,12 @@
 output/*
+full-pdf
 lib
 test*.py
 
 # documents sources
 *.pdf
 *.csv
+*.jpg
 
 # config privée
 .env

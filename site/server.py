@@ -1,7 +1,7 @@
 import os
 import json
 from flask import Flask, jsonify, render_template, request
-from database import search, modif_data, list_langue, history
+from database import search, modif_data, list_langue, history, get_page_db
 
 
 os.chdir(os.path.dirname(__file__))
@@ -21,9 +21,10 @@ def fetch_search():
     return jsonify({"table": res[0], "count": res[1]})
 
 
-@app.route("/listLangue", methods=["GET"])
+@app.route("/listLangue", methods=["POST"])
 def fetch_langue():
-    res = list_langue()
+    result = json.loads(request.get_data())
+    res = list_langue(result["livre"])
     return jsonify(res)
 
 
@@ -42,6 +43,14 @@ def history_request():
     return jsonify(history(langue=langue, sens=sens))
 
 
+@app.route("/getPage", methods=["POST"])
+def get_page():
+    result = json.loads(request.get_data())
+    livre = result["livre"]
+    num_page = result["page"]
+    return jsonify(get_page_db(livre, num_page))
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -50,6 +59,11 @@ def index():
 @app.route("/historique")
 def historique():
     return render_template("historique.html")
+
+
+@app.route("/correction-page")
+def correction_page():
+    return render_template("correction-page.html")
 
 
 if __name__ == "__main__":

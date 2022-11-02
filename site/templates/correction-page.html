@@ -3,19 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Test</title>
-    <script defer type="module" src="static/js/script-index.js"></script>
+    <title>Correction page</title>
     <link href="static/css/style.css" rel="stylesheet">
+    <link href="static/css/correction-page.css" rel="stylesheet">
+    <script defer type="module" src="static/js/correction-page.js"></script>
 </head>
 
 <body>
-    <div id="searchDiv">
-        <input type="text" id="search" placeholder="chercher" value="">
-        <button id="searchButton">chercher</button>
-        <span><label>language de base</label><select id="baseSelect"></select></span>
-        <span><label>language arrivé</label><select id="resultSelect"></select></span>
-    </div>
-    <div id="tableDiv">
+    <span id="tableDiv">
         <button hidden id="edit">Editer</button>
         <button hidden id="send">Mise a jour de la base de donnée</button>
         <table id="table">
@@ -25,8 +20,8 @@
         <button hidden class="clickable" id="prev">Précédent</button>
         <span id="pageDisplay"></span>
         <button hidden class="clickable" id="next">Suivant</button>
-    </div>
-
+    </span>
+    <embed id="pdfViewer">
 
 </body>
 

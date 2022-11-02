@@ -13,8 +13,8 @@ from tqdm import tqdm
 
 # import asyncio
 
-# select mots from data
-# where langue=(select id from langue where nom='pije') and mots ~* '^(\w{3,})\1';
+# select traduction from data
+# where id_langue=(select id from langue where nom='pije') and traduction ~* '^(\w{3,})\1';
 os.chdir(os.path.dirname(__file__))
 
 if os.path.exists(".env"):
@@ -37,17 +37,24 @@ def reset_table():
                 cur.execute(file.read())
 
 
-def add_langue(cur, langue):
+def add_langue(cur, langue, livre):
     """_summary_
 
     Args:
         cur (_type_): _description_
         langue (_type_): _description_
     """
-    cur.execute("INSERT INTO langue (nom) VALUES (%(langue)s);", {"langue": langue})
+    cur.execute(
+        "INSERT INTO langue (nom_langue) VALUES (%(langue)s);", {"langue": langue}
+    )
+    cur.execute(
+        """INSERT INTO langue_dans_un_livre (id_livre,id_langue)
+        VALUES (get_id_livre(%(livre)s),get_id_langue(%(langue)s));""",
+        {"langue": langue, "livre": livre},
+    )
 
 
-def add_line(cur, line, liste_langue, count):
+def hienghene_process(cur, line, livre, liste_langue, count):
     """_summary_
 
     Args:
@@ -57,12 +64,12 @@ def add_line(cur, line, liste_langue, count):
     liste_line = line.split(";")
     num_page = liste_line[len(liste_line) - 1]
     del liste_line[len(liste_line) - 1]
-    requete = "INSERT INTO data (langue , sens , mots , numeroPage) VALUES "
+    requete = "INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre) VALUES "
     for langue, mot in zip(liste_langue, liste_line):
         if mot != "":
             mot = mot.replace("'", "''")
             requete += f"""
-            ((select id_langue('{langue}')),'{count}','{mot}','{num_page}'),"""
+            ((select get_id_langue('{langue}')),'{count}','{mot}','{num_page}',(select get_id_livre('{livre}'))),"""
     requete = requete[0 : len(requete) - 1] + ";"
     cur.execute(requete)
 
@@ -78,9 +85,9 @@ def modif_data(langue, text, sens):
         with conn.cursor() as cur:
             # todo row trigger after insert
             cur.execute(
-                """INSERT INTO data (langue , sens , mots , numeroPage)
-                        VALUES((select id_langue(%(langue)s)),%(sens)s,%(text)s,
-                        (SELECT DISTINCT numeroPage FROM data where sens=%(sens)s))""",
+                """INSERT INTO data (id_langue , sens , traduction , numero_page)
+                        VALUES((select get_id_langue(%(langue)s)),%(sens)s,%(text)s,
+                        (SELECT DISTINCT numero_page FROM data where sens=%(sens)s))""",
                 {
                     "langue": langue,
                     "text": text,
@@ -109,8 +116,8 @@ def search(keyword, langue, langue_base, offset):
             # cur.execute(
             #     """
             #     SELECT DISTINCT count(sens) FROM data
-            #         WHERE mots ~* %(keyword)s
-            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #         WHERE traduction ~* %(keyword)s
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))""",
             #     {
             #         "keyword": keyword,
             #         "langueBase": langue_base,
@@ -121,8 +128,8 @@ def search(keyword, langue, langue_base, offset):
             # cur.execute(
             #     """
             #     SELECT DISTINCT sens FROM data
-            #         WHERE mots ~* %(keyword)s
-            #         AND langue=(select id_langue(%(langueBase)s))
+            #         WHERE traduction ~* %(keyword)s
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))
             #         ORDER BY sens
             #         LIMIT 25
             #         OFFSET %(offset)s;
@@ -135,40 +142,13 @@ def search(keyword, langue, langue_base, offset):
             # )
 
             # * TSQUERY
-            cur.execute(
-                """
-                SELECT DISTINCT count(sens) FROM data
-                    WHERE to_tsvector(mots) @@ to_tsquery(%(keyword)s)
-                    AND langue=(select id_langue(%(langueBase)s))""",
-                {
-                    "keyword": keyword,
-                    "langueBase": langue_base,
-                },
-            )
-            count = cur.fetchone()[0]
-            print(count)
-            cur.execute(
-                """
-                SELECT DISTINCT sens FROM data
-                    WHERE to_tsvector(mots) @@ to_tsquery(%(keyword)s)
-                    AND langue=(select id_langue(%(langueBase)s))
-                    ORDER BY sens
-                    LIMIT 25
-                    OFFSET %(offset)s;
-                    """,
-                {
-                    "keyword": keyword,
-                    "langueBase": langue_base,
-                    "offset": offset,
-                },
-            )
 
             # * METAPHONE
             # cur.execute(
             #     """
-            #     SELECT DISTINCT count(sens) FROM data
-            #         WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
-            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #     SELECT DISTINCT count(sens) FROM dataid_langue=
+            #         WHERE dmetaphone(traduction) = dmetaphone(%(keyword)s)
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))""",
             #     {
             #         "keyword": keyword,
             #         "langueBase": langue_base,
@@ -179,8 +159,8 @@ def search(keyword, langue, langue_base, offset):
             # cur.execute(
             #     """
             #     SELECT DISTINCT sens FROM data
-            #         WHERE dmetaphone(mots) = dmetaphone(%(keyword)s)
-            #         AND langue=(select id_langue(%(langueBase)s))
+            #         WHERE dmetaphone(traduction) = dmetaphone(%(keyword)s)
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))
             #         ORDER BY sens
             #         LIMIT 25
             #         OFFSET %(offset)s;
@@ -196,8 +176,8 @@ def search(keyword, langue, langue_base, offset):
             # cur.execute(
             #     """
             #     SELECT DISTINCT count(sens) FROM data
-            #         WHERE similarity(mots,%(keyword)s) > 0.3
-            #         AND langue=(select id_langue(%(langueBase)s))""",
+            #         WHERE similarity(traduction,%(keyword)s) > 0.3
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))""",
             #     {
             #         "keyword": keyword,
             #         "langueBase": langue_base,
@@ -207,9 +187,9 @@ def search(keyword, langue, langue_base, offset):
             # print(count)
             # cur.execute(
             #     """
-            #     SELECT sens,similarity(mots,%(keyword)s),mots FROM data
-            #         WHERE similarity(mots,%(keyword)s) > 0.3
-            #         AND langue=(select id_langue(%(langueBase)s))
+            #     SELECT sens,similarity(traduction,%(keyword)s),nom_langue FROM data
+            #         WHERE similarity(traduction,%(keyword)s) > 0.3
+            #         AND id_langue=(select get_id_langue(%(langueBase)s))
             #         ORDER BY sens
             #         LIMIT 25
             #         OFFSET %(offset)s;
@@ -220,55 +200,68 @@ def search(keyword, langue, langue_base, offset):
             #         "offset": offset,
             #     },
             # )
-            liste = cur.fetchall()
-            for sens in liste:
-                sens = sens[0]
-                if langue == "all":
-                    cur.execute(
-                        """SELECT nom,mots,sens,numeroPage 
-                            FROM data JOIN langue ON data.langue = langue.id
-                            WHERE data.id IN
-                            (SELECT max(data.id) AS id FROM data
-                                WHERE sens=%(sens)s GROUP BY langue);""",
-                        {"sens": sens},
-                    )
-                else:
+            cur.execute(
+                """
+                SELECT DISTINCT count(sens) FROM data
+                    WHERE to_tsvector(traduction) @@ to_tsquery(%(keyword)s)
+                    AND id_langue=(select get_id_langue(%(langue_base)s))""",
+                {
+                    "keyword": keyword,
+                    "langue_base": langue_base,
+                },
+            )
+            count = cur.fetchone()[0]
 
-                    cur.execute(
-                        """SELECT nom,mots,sens,numeroPage FROM data JOIN langue ON data.langue = langue.id
-                            WHERE (langue=(select id_langue(%(langueBase)s))
-                                    OR langue=(select id_langue(%(langue)s)))
-                                AND data.id IN
-                            (SELECT max(data.id) AS id FROM data
-                                WHERE sens=%(sens)s GROUP BY langue);""",
-                        {
-                            "langueBase": langue_base,
-                            "langue": langue,
-                            "sens": sens,
-                        },
-                    )
-
-                res.append(cur.fetchall())
+            cur.execute(
+                "Select * from search(%(keyword)s,%(langue)s,%(langue_base)s,%(offset)s)",
+                {
+                    "keyword": keyword,
+                    "langue": langue,
+                    "langue_base": langue_base,
+                    "offset": offset,
+                },
+            )
+            res = cur.fetchall()
 
     return [res, count]
+
+
+def get_page_db(livre, num_page):
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT * FROM search_by_page(%(num_page)s,%(livre)s)""",
+                {"livre": livre, "num_page": num_page},
+            )
+            return cur.fetchall()
 
 
 def history(sens, langue):
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT date_creation,mots FROM data
-                    WHERE sens=%(sens)s and langue=(select id_langue(%(langue)s))
+                """SELECT date_creation,traduction FROM data
+                    WHERE sens=%(sens)s and id_langue=(select get_id_langue(%(langue)s))
                     ORDER BY date_creation desc;""",
                 {"sens": sens, "langue": langue},
             )
             return cur.fetchall()
 
 
-def list_langue():
+def list_langue(livre="all"):
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            cur.execute("SELECT nom FROM langue;")
+            if livre == "all":
+                cur.execute("SELECT nom_langue FROM langue;")
+            else:
+                cur.execute(
+                    """SELECT nom_langue FROM langue
+                    WHERE id_langue IN (SELECT id_langue
+                                    FROM langue_dans_un_livre
+                                    WHERE id_livre = (SELECT get_id_livre(%(livre)s)))
+                            """,
+                    {"livre": livre},
+                )
             tempory = cur.fetchall()
             res = []
             for langue in tempory:
@@ -276,36 +269,41 @@ def list_langue():
             return res
 
 
-def insert_from_csv(filename="output.csv"):
-    """_summary_
-
-    Args:
-        filename (str, optional): _description_. Defaults to "output.csv".
-    """
-    filename = "release/" + filename
+def insert_from_csv(filename, liste_langue, add_line_func):
+    """_summary_"""
+    filename_csv = "release/" + filename + ".csv"
     reset_table()
-    liste_langue = [
-        "français",
-        "pije",
-        "fwâi",
-        "nemi 1 (Temala)",
-        "nemi 2 (côte est)",
-        "jawe",
-    ]
 
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO livre (nom_livre) VALUES (%(filename)s)",
+                {"filename": filename},
+            )
             for langue in liste_langue:
-                add_langue(cur, langue)
-            with open(filename, "r", encoding="utf-8") as file:
+                add_langue(cur, langue, filename)
+            with open(filename_csv, "r", encoding="utf-8") as file:
                 liste_line = file.readlines()
                 with tqdm(total=len(liste_line)) as pbar:
                     count = 0
                     for line in liste_line:
-                        add_line(cur, line.replace("\n", ""), liste_langue, count)
+                        add_line_func(
+                            cur, line.replace("\n", ""), filename, liste_langue, count
+                        )
                         count += 1
                         pbar.update()
 
 
 if __name__ == "__main__":
-    insert_from_csv()
+    insert_from_csv(
+        "hienghene-Fr",
+        [
+            "français",
+            "pije",
+            "fwâi",
+            "nemi 1 (Temala)",
+            "nemi 2 (côte est)",
+            "jawe",
+        ],
+        hienghene_process,
+    )

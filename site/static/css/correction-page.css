@@ -1,0 +1,15 @@
+#tableDiv{
+    position: absolute;
+    top:10%;
+    left:1%;
+    width:45%;
+}
+
+#pdfViewer{
+    position: absolute;
+    top:10%;
+    right:1%;
+    width:45%;
+    height: 80%;
+    border:solid black 1px
+}
