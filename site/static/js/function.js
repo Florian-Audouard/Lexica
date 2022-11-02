@@ -3,8 +3,12 @@ export function createTableResult(
 	langueBase,
 	listeLangue,
 	resultTitle,
-	resultSearch
+	resultSearch,
+	affichePage
 ) {
+	if (affichePage === undefined) {
+		affichePage = true;
+	}
 	let editButton = document.querySelector("#edit");
 	let sendButton = document.querySelector("#send");
 	editButton.hidden = false;
@@ -17,10 +21,11 @@ export function createTableResult(
 		th.innerHTML = langue;
 		trTitle.appendChild(th);
 	}
-	th = document.createElement("th");
-	th.innerHTML = "page";
-	trTitle.appendChild(th);
-
+	if (affichePage) {
+		th = document.createElement("th");
+		th.innerHTML = "page";
+		trTitle.appendChild(th);
+	}
 	resultTitle.appendChild(trTitle);
 	resultSearch.innerHTML = "";
 	for (let ligne of tab) {
@@ -39,12 +44,13 @@ export function createTableResult(
 			td.langue = langue;
 			tr.appendChild(td);
 		}
-		td = document.createElement("td");
-		console.log(ligne);
-		let num = ligne.get(langueBase).numeroPage;
-
-		td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="static/pdf/hienghene-Fr.pdf#page=${num}">${num}</a>`;
-		tr.appendChild(td);
+		if (affichePage) {
+			td = document.createElement("td");
+			console.log(ligne);
+			let num = ligne.get(langueBase).numeroPage;
+			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="static/pdf/hienghene-Fr.pdf#page=${num}">${num}</a>`;
+			tr.appendChild(td);
+		}
 
 		resultSearch.appendChild(tr);
 	}

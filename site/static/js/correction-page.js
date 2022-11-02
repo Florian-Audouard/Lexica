@@ -56,6 +56,7 @@ fetch("/getPage", {
 			"français",
 			listeLangue,
 			document.querySelector("#resultTitle"),
-			document.querySelector("#resultSearch")
+			document.querySelector("#resultSearch"),
+			false
 		);
 	});
