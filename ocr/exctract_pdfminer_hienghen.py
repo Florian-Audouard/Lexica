@@ -79,13 +79,7 @@ def get_parser():
 list_column = []
 
 
-def reassemble_text(tupple_liste):
-    """_summary_
-
-    Args:
-        tuppleListe (_type_): _description_
-    """
-
+def reassemble_text(tupple_liste):  # pylint: disable=missing-function-docstring
     def my_sort(element):
         return (round(element[1]), round(element[0]))
 
@@ -97,16 +91,8 @@ def reassemble_text(tupple_liste):
     return res
 
 
-def transform_dict_to_str(dico, aprox):
-    """_summary_
+def transform_dict_to_str(dico, aprox):  # pylint: disable=missing-function-docstring
 
-    Args:
-        dico (_type_): _description_
-        aprox (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
     res = ""
     current = 0
     for dico_element in dico:
@@ -126,15 +112,10 @@ def transform_dict_to_str(dico, aprox):
     return res[0 : len(res) - 1]
 
 
-def dico_to_csv(dico, file, aprox, num_page):
-    """_summary_
+def dico_to_csv(
+    dico, file, aprox, num_page
+):  # pylint: disable=missing-function-docstring
 
-    Args:
-        dico (_type_): _description_
-        file (_type_): _description_
-        aprox (_type_): _description_
-        num_page (_type_): _description_
-    """
     dico = collections.OrderedDict(sorted(dico.items(), reverse=True))
     for index in dico:
         dico[index] = collections.OrderedDict(sorted(dico[index].items()))
@@ -148,45 +129,27 @@ def dico_to_csv(dico, file, aprox, num_page):
             )
 
 
-def add_list(val, approx):
-    """_summary_
+def add_list(val, approx):  # pylint: disable=missing-function-docstring
 
-    Args:
-        val (_type_): _description_
-        approx (_type_): _description_
-    """
     if not aproximatif(list_column, val, approx) in list_column:
         list_column.append(val)
         list_column.sort()
 
 
-def aproximatif(collection, test_y, degres_aprox=10):
-    """_summary_
+def aproximatif(
+    collection, test_y, degres_aprox=10
+):  # pylint: disable=missing-function-docstring
 
-    Args:
-        collection (_type_): _description_
-        i (_type_): _description_
-        degresAprox (int, optional): _description_. Defaults to 10.
-
-    Returns:
-        _type_: _description_
-    """
     for key in collection:
         if key - degres_aprox < test_y < key + degres_aprox:
             return key
     return test_y
 
 
-def page_to_csv(page, file, aprox_y, aprox_x, num_page):
-    """_summary_
+def page_to_csv(
+    page, file, aprox_y, aprox_x, num_page
+):  # pylint: disable=missing-function-docstring
 
-    Args:
-        page (_type_): _description_
-        file (_type_): _description_
-        aprox_y (_type_): _description_
-        aprox_x (_type_): _description_
-        num_page (_type_): _description_
-    """
     global list_column
     list_column = []
     interpreter.process_page(page)
