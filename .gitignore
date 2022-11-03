@@ -1,6 +1,5 @@
 output/*
 full-pdf
-lib
 test*.py
 output
 
