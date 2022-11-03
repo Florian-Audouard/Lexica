@@ -5,14 +5,20 @@
     width:45%;
 }
 
-#pdfViewer{
+#pdf{
     position: absolute;
     top:10%;
     right:1%;
     width:45%;
     height: 80%;
+    text-align: center;
+}
+#pdfViewer{
+    width: 100%;
+    height: 95%;
     border:solid black 1px
 }
+
 #switchButton{
     position: absolute;
     top: 5%;

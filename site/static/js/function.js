@@ -49,7 +49,7 @@ export function createTableResult(
 			td = document.createElement("td");
 			let num = ligne.get(langueBase).numeroPage;
 			let livre = ligne.get(langueBase).nomLivre;
-			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}">${num}</a>`;
+			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}&showBox=false">${num}</a>`;
 			tr.appendChild(td);
 		}
 
