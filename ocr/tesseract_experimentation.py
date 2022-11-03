@@ -36,9 +36,9 @@ def concat_boxe(array_boxe_func, dict_test, index_dict, aprox_x=50, aprox_y=10):
             space_vertical_between = abs(
                 dict_test["top"] - (element_boxe["top"] + element_boxe["height"])
             )
-            if element_boxe["text"] in "aller" and dict_test["text"] in "(déplacement":
-                print("dict test", dict_test)
-                print("element_boxe", element_boxe)
+            # if element_boxe["text"] in "aller" and dict_test["text"] in "(déplacement":
+            # print("dict test", dict_test)
+            # print("element_boxe", element_boxe)
             if space_horizontal_between < aprox_x and space_vertical_between < aprox_y:
                 array_boxe_func.pop(index)
                 array_boxe_func.pop(index_dict)

@@ -1,6 +1,6 @@
-output/*
 full-pdf
 test*.py
+lib
 output
 
 # documents sources
