@@ -25,8 +25,8 @@ document.querySelector(
 	"#pdfViewer"
 ).src = `static/pdf/${livreStart}.pdf#page=${numPage}`;
 
-checkBox.addEventListener("click", (event) => {
-	if (event.target.checked) {
+function changePdfBox(bool) {
+	if (checkBox.checked) {
 		document.querySelector(
 			"#pdfViewer"
 		).src = `static/pdf/${livreBox}.pdf#page=${numPage}`;
@@ -35,6 +35,12 @@ checkBox.addEventListener("click", (event) => {
 			"#pdfViewer"
 		).src = `static/pdf/${livre}.pdf#page=${numPage}`;
 	}
+}
+
+checkBox.addEventListener("click", changePdfBox);
+document.querySelector("#labelBox").addEventListener("click", (_) => {
+	checkBox.checked = !checkBox.checked;
+	changePdfBox();
 });
 
 listernerOnchangeTable(document.querySelector("#table"), editButton);

@@ -122,14 +122,18 @@ async function search(keyword, engine, langueBase, langueResult, page) {
 				return resp.json();
 			})
 			.then((json) => {
-				createPageCount(json.count);
-				createTableResult(
-					arrayToObject(json.table),
-					langueBase,
-					listeDesLangue(),
-					document.querySelector("#resultTitle"),
-					document.querySelector("#resultSearch")
-				);
+				if (json.verif === "ok") {
+					createPageCount(json.count);
+					createTableResult(
+						arrayToObject(json.table),
+						langueBase,
+						listeDesLangue(),
+						document.querySelector("#resultTitle"),
+						document.querySelector("#resultSearch")
+					);
+				} else {
+					console.log("Error database");
+				}
 			});
 	}
 }

@@ -46,7 +46,7 @@ def get_parser():
         "--output",
         "-o",
         action="store",
-        default="output.pdf",
+        default="filename-rectangle.pdf",
         help="indique le nom du fichier de sortie",
     )
     parser.add_argument(
@@ -106,7 +106,10 @@ if __name__ == "__main__":
         i = 1
 
         numero_page = args.page
-        file_output = "output/" + args.output
+        file_output = args.output
+        if args.output == "filename-rectangle.pdf":
+            tmp = args.filename.split(".")
+            file_output = "output/" + ".".join(tmp[0 : len(tmp) - 1]) + "-rectangle.pdf"
         if numero_page == 0:
             with tqdm(total=nb_pages) as pbar:
                 with fitz.open(file_input) as rectangle_pdf:

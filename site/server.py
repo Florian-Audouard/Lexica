@@ -31,10 +31,17 @@ def fetch_search():  # pylint: disable=missing-function-docstring
     langue_base = result["langueBase"]
     langue_result = result["langueResult"]
     offset = result["offset"]
-    res = search(
-        keyword, engine, langue=langue_result, langue_base=langue_base, offset=offset
-    )
-    return jsonify({"table": res[0], "count": res[1]})
+    try:
+        res = search(
+            keyword,
+            engine,
+            langue=langue_result,
+            langue_base=langue_base,
+            offset=offset,
+        )
+        return jsonify({"table": res[0], "count": res[1], "verif": "ok"})
+    except:
+        return jsonify({"verif": "error"})
 
 
 @app.route("/listLangue", methods=["POST"])
