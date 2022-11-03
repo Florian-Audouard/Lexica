@@ -8,14 +8,34 @@ import {
 const urlParam = new URLSearchParams(window.location.search);
 const livre = urlParam.get("livre");
 const numPage = parseInt(urlParam.get("page"));
-resetSaveChange();
+const showBox = urlParam.get("showBox") === "true";
 
-document.querySelector(
-	"#pdfViewer"
-).src = `static/pdf/${livre}.pdf#page=${numPage}`;
+resetSaveChange();
 
 let editButton = document.querySelector("#edit");
 let sendButton = document.querySelector("#send");
+let checkBox = document.querySelector("#showBox");
+checkBox.checked = showBox;
+let livreBox = livre + "-rectangle";
+let livreStart = livre;
+if (showBox) {
+	livreStart = livreBox;
+}
+document.querySelector(
+	"#pdfViewer"
+).src = `static/pdf/${livreStart}.pdf#page=${numPage}`;
+
+checkBox.addEventListener("click", (event) => {
+	if (event.target.checked) {
+		document.querySelector(
+			"#pdfViewer"
+		).src = `static/pdf/${livreBox}.pdf#page=${numPage}`;
+	} else {
+		document.querySelector(
+			"#pdfViewer"
+		).src = `static/pdf/${livre}.pdf#page=${numPage}`;
+	}
+});
 
 listernerOnchangeTable(document.querySelector("#table"), editButton);
 
@@ -60,15 +80,20 @@ fetch("/getPage", {
 
 document.querySelector("#next").onclick = next;
 function next() {
+	// todo ajout capteur de fin de document
 	const url = new URL(window.location);
-	const newURL = `${url.pathname}?livre=${livre}&page=${numPage + 1}`;
+	const newURL = `${url.pathname}?livre=${livre}&page=${
+		numPage + 1
+	}&showBox=${showBox}`;
 	window.location.href = newURL;
 }
 document.querySelector("#prev").onclick = prev;
 function prev() {
 	const url = new URL(window.location);
 	if (numPage > 1) {
-		const newURL = `${url.pathname}?livre=${livre}&page=${numPage - 1}`;
+		const newURL = `${url.pathname}?livre=${livre}&page=${
+			numPage - 1
+		}&showBox=${showBox}`;
 		window.location.href = newURL;
 	}
 }
