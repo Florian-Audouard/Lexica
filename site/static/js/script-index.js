@@ -3,7 +3,6 @@ import {
 	arrayToObject,
 	resetSaveChange,
 	listernerOnchangeTable,
-	editableTable,
 	sendButtonInit,
 } from "./function.js";
 
@@ -156,9 +155,7 @@ document.querySelector("#search").addEventListener("keypress", (event) => {
 	}
 });
 
-listernerOnchangeTable(document.querySelector("#table"));
-
-editableTable(editButton);
+listernerOnchangeTable(document.querySelector("#table"), editButton);
 
 sendButtonInit(sendButton);
 async function main() {
@@ -187,3 +184,4 @@ async function main() {
 	}
 }
 main();
+

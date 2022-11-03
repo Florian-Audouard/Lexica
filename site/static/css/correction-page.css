@@ -13,3 +13,9 @@
     height: 80%;
     border:solid black 1px
 }
+#switchButton{
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}

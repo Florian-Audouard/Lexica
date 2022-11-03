@@ -3,12 +3,11 @@ import {
 	arrayToObject,
 	resetSaveChange,
 	listernerOnchangeTable,
-	editableTable,
 	sendButtonInit,
 } from "./function.js";
 const urlParam = new URLSearchParams(window.location.search);
 const livre = urlParam.get("livre");
-const numPage = urlParam.get("page");
+const numPage = parseInt(urlParam.get("page"));
 resetSaveChange();
 
 document.querySelector(
@@ -18,9 +17,7 @@ document.querySelector(
 let editButton = document.querySelector("#edit");
 let sendButton = document.querySelector("#send");
 
-listernerOnchangeTable(document.querySelector("#table"));
-
-editableTable(editButton);
+listernerOnchangeTable(document.querySelector("#table"), editButton);
 
 sendButtonInit(sendButton);
 
@@ -60,3 +57,20 @@ fetch("/getPage", {
 			false
 		);
 	});
+
+document.querySelector("#next").onclick = next;
+function next() {
+	const url = new URL(window.location);
+	const newURL = `${url.pathname}?livre=${livre}&page=${numPage + 1}`;
+	window.location.href = newURL;
+}
+document.querySelector("#prev").onclick = prev;
+function prev() {
+	const url = new URL(window.location);
+	if (numPage > 1) {
+		const newURL = `${url.pathname}?livre=${livre}&page=${numPage - 1}`;
+		window.location.href = newURL;
+	}
+}
+
+// selectText method taken from http://stackoverflow.com/a/11128179/782034

@@ -77,20 +77,23 @@ CREATE OR REPLACE FUNCTION search(keyword data.traduction%TYPE, langue_target la
         nom_langue text,
         traduction text,
         sens int,
-        numeroPage int
+        numeroPage int,
+        nom_livre text
     )
     LANGUAGE plpgsql AS
     $funcSearch$
     BEGIN
         if langue_target = 'all' then
             RETURN QUERY
-            SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page
-                            FROM data JOIN langue ON data.id_langue = langue.id_langue
+            SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page , livre.nom_livre
+                            FROM data JOIN livre ON data.id_livre = livre.id_livre
+                            JOIN langue ON data.id_langue = langue.id_langue
                             WHERE data.id_data IN (select * from query_engine(keyword,langue_base,offset_num)) ORDER BY data.sens;
         else
         RETURN QUERY
-            SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page
-                            FROM data JOIN langue ON data.id_langue = langue.id_langue 
+            SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page , livre.nom_livre
+                            FROM data JOIN livre ON data.id_livre = livre.id_livre  
+                            JOIN langue ON data.id_langue = langue.id_langue 
                             WHERE (data.id_langue=(select get_id_langue(langue_base))
                                     OR data.id_langue=(select get_id_langue(langue_target)))
                             AND data.id_data IN (select * from query_engine(keyword,langue_base,offset_num)) ORDER BY data.sens;    
@@ -121,14 +124,13 @@ CREATE OR REPLACE FUNCTION search_by_page(page int, livre livre.nom_livre%TYPE)
     RETURNS TABLE(
         nom_langue text,
         traduction text,
-        sens int,
-        numeroPage int
+        sens int
     )
     LANGUAGE plpgsql AS
     $funcSearch$
     BEGIN
         RETURN QUERY
-        SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page
+        SELECT langue.nom_langue,data.traduction,data.sens
                         FROM data JOIN langue ON data.id_langue = langue.id_langue
                         WHERE data.id_data IN (select * from page_engine(page,livre)) ORDER BY data.sens;   
         END

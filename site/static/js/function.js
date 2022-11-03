@@ -42,20 +42,36 @@ export function createTableResult(
 			}
 			td.sens = sens;
 			td.langue = langue;
+			td.addEventListener("keypress", function (evt) {
+				if (evt.key.toLowerCase() == "enter") {
+					evt.preventDefault();
+					var cellindex = evt.target.cellIndex;
+					var rowindex = evt.target.parentElement.rowIndex;
+					selectText(
+						document.querySelector("table").children[1].children[
+							rowindex
+						].children[cellindex]
+					);
+				}
+			});
 			tr.appendChild(td);
 		}
 		if (affichePage) {
 			td = document.createElement("td");
 			console.log(ligne);
 			let num = ligne.get(langueBase).numeroPage;
-			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="static/pdf/hienghene-Fr.pdf#page=${num}">${num}</a>`;
+			let livre = ligne.get(langueBase).nomLivre;
+			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}">${num}</a>`;
 			tr.appendChild(td);
 		}
 
 		resultSearch.appendChild(tr);
 	}
 }
-export function arrayToObject(arr) {
+export function arrayToObject(arr, affichePage) {
+	if (affichePage === undefined) {
+		affichePage = true;
+	}
 	let tab = [];
 	let currentSens = -1;
 	let tmp = undefined;
@@ -67,12 +83,19 @@ export function arrayToObject(arr) {
 			}
 			tmp = new Map();
 		}
-
-		tmp.set(element[0], {
-			text: element[1],
-			sens: element[2],
-			numeroPage: element[3],
-		});
+		if (affichePage) {
+			tmp.set(element[0], {
+				text: element[1],
+				sens: element[2],
+				numeroPage: element[3],
+				nomLivre: element[4],
+			});
+		} else {
+			tmp.set(element[0], {
+				text: element[1],
+				sens: element[2],
+			});
+		}
 	}
 	tab.push(tmp);
 	return tab;
@@ -106,7 +129,12 @@ export function sendButtonInit(sendButton) {
 		});
 	});
 }
-export function listernerOnchangeTable(table) {
+export function listernerOnchangeTable(table, editButton) {
+	editButton.onclick = (_) => {
+		for (let td of document.querySelectorAll("td")) {
+			td.contentEditable = true;
+		}
+	};
 	table.addEventListener("keyup", (event) => {
 		if (event.target.tagName.toLowerCase() === "td") {
 			let sens = event.target.sens;
@@ -120,10 +148,37 @@ export function listernerOnchangeTable(table) {
 	});
 }
 
-export function editableTable(editButton) {
-	editButton.addEventListener("click", (_) => {
-		for (let th of document.querySelectorAll("td")) {
-			th.contentEditable = true;
-		}
-	});
+function selectText(text) {
+	if (document.body.createTextRange) {
+		// ms
+		var range = document.body.createTextRange();
+		range.moveToElementText(text);
+		range.select();
+	} else if (window.getSelection) {
+		// moz, opera, webkit
+		var selection = window.getSelection();
+		var range = document.createRange();
+		range.selectNodeContents(text);
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
 }
+
+document.addEventListener("copy", (event) => {
+	event.preventDefault();
+	if (window.getSelection) {
+		let text = window.getSelection().toString();
+		navigator.clipboard.writeText(text);
+	}
+});
+
+document.addEventListener("paste", (event) => {
+	event.preventDefault();
+	const text = event.clipboardData.getData("text");
+	const startCursor = window.getSelection().getRangeAt(0).startOffset;
+	const currentText = event.target.innerText;
+	event.target.innerText =
+		currentText.slice(0, startCursor) +
+		text +
+		currentText.slice(startCursor, currentText.length);
+});
