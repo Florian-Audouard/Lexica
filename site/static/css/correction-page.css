@@ -6,7 +6,7 @@
 }
 
 #pdf{
-    position: absolute;
+    position: fixed;
     top:10%;
     right:1%;
     width:45%;
