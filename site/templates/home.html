@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Test</title>
-    <script defer type="module" src="static/js/script-index.js"></script>
+    <script defer type="module" src="static/js/home.js"></script>
     <link href="static/css/style.css" rel="stylesheet">
 </head>
 
@@ -12,8 +12,12 @@
     <div id="searchDiv">
         <input type="text" id="search" placeholder="chercher" value="">
         <button id="searchButton">chercher</button>
-        <span><label>language de base</label><select id="baseSelect"></select></span>
-        <span><label>language arrivé</label><select id="resultSelect"></select></span>
+        <select id="engineSelect">
+            <option value="tsquery">TsQuery</option>
+            <option value="regex">Regex</option>
+        </select>
+        <span><label>language de base : </label><select id="baseSelect"></select></span>
+        <span><label>language arrivé : </label><select id="resultSelect"></select></span>
     </div>
     <div id="tableDiv">
         <button hidden id="edit">Editer</button>

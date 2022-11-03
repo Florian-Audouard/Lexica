@@ -2,10 +2,10 @@ output/*
 full-pdf
 lib
 test*.py
+output
 
 # documents sources
 *.pdf
-*.csv
 *.jpg
 
 # config privée

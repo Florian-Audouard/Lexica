@@ -42,23 +42,11 @@ export function createTableResult(
 			}
 			td.sens = sens;
 			td.langue = langue;
-			td.addEventListener("keypress", function (evt) {
-				if (evt.key.toLowerCase() == "enter") {
-					evt.preventDefault();
-					var cellindex = evt.target.cellIndex;
-					var rowindex = evt.target.parentElement.rowIndex;
-					selectText(
-						document.querySelector("table").children[1].children[
-							rowindex
-						].children[cellindex]
-					);
-				}
-			});
+			td.addEventListener("keypress", keyHandler);
 			tr.appendChild(td);
 		}
 		if (affichePage) {
 			td = document.createElement("td");
-			console.log(ligne);
 			let num = ligne.get(langueBase).numeroPage;
 			let livre = ligne.get(langueBase).nomLivre;
 			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}">${num}</a>`;
@@ -182,3 +170,15 @@ document.addEventListener("paste", (event) => {
 		text +
 		currentText.slice(startCursor, currentText.length);
 });
+
+function keyHandler(evt) {
+	if (evt.key.toLowerCase() == "enter") {
+		evt.preventDefault();
+		var cellindex = evt.target.cellIndex;
+		var rowindex = evt.target.parentElement.rowIndex;
+		selectText(
+			document.querySelector("table").children[1].children[rowindex]
+				.children[cellindex]
+		);
+	}
+}

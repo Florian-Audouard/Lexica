@@ -1,20 +1,16 @@
 """_summary_
 
-    Returns:
-        _type_: _description_
-    """
-
+Returns:
+    _type_: _description_
+"""
 import os
+import json
 import urllib.parse
 import psycopg
 
 from dotenv import dotenv_values
 from tqdm import tqdm
 
-# import asyncio
-
-# select traduction from data
-# where id_langue=(select id from langue where nom='pije') and traduction ~* '^(\w{3,})\1';
 os.chdir(os.path.dirname(__file__))
 
 if os.path.exists(".env"):
@@ -23,27 +19,29 @@ else:
     config = dotenv_values("default.env")
 
 
-FILENAME_SHEMA = "database/database.sql"
-
+FILENAME_DB_SHEMA = "database/database.sql"
+FILENAME_FUNCTION_SHEMA = "database/function.sql"
 options = urllib.parse.quote_plus("--search_path=modern,public")
 CONN_PARAMS = f"postgresql://{config['USER']}:{config['PASSWORD']}@{config['HOST']}:{config['PORT']}/{config['DATABASE']}?options={options}"  # pylint: disable=line-too-long
 
 
-def reset_table():
-    """_summary_"""
+def update_function():  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            with open(FILENAME_SHEMA, "r", encoding="utf-8") as file:
+            with open(FILENAME_FUNCTION_SHEMA, "r", encoding="utf-8") as file:
                 cur.execute(file.read())
 
 
-def add_langue(cur, langue, livre):
-    """_summary_
+def reset_table():  # pylint: disable=missing-function-docstring
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            with open(FILENAME_DB_SHEMA, "r", encoding="utf-8") as file:
+                cur.execute(file.read())
+            with open(FILENAME_FUNCTION_SHEMA, "r", encoding="utf-8") as file:
+                cur.execute(file.read())
 
-    Args:
-        cur (_type_): _description_
-        langue (_type_): _description_
-    """
+
+def add_langue(cur, langue, livre):  # pylint: disable=missing-function-docstring
     cur.execute(
         "INSERT INTO langue (nom_langue) VALUES (%(langue)s);", {"langue": langue}
     )
@@ -54,36 +52,37 @@ def add_langue(cur, langue, livre):
     )
 
 
-def hienghene_process(cur, line, livre, liste_langue, count):
-    """_summary_
-
-    Args:
-        cur (_type_): _description_
-        langue (_type_): _description_
-    """
+def hienghene_process(
+    cur, line, livre, liste_langue, count
+):  # pylint: disable=missing-function-docstring
     liste_line = line.split(";")
     num_page = liste_line[len(liste_line) - 1]
     del liste_line[len(liste_line) - 1]
     requete = "INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre) VALUES "
-    for langue, mot in zip(liste_langue, liste_line):
-        if mot != "":
-            mot = mot.replace("'", "''")
+    for langue, element in zip(liste_langue, liste_line):
+        # try:
+        #     json_obj = json.loads(element)
+        #     mots = json_obj["text"]
+        #     if mots != "":
+        #         mots = mots.replace("'", "''")
+        #         requete += f"""
+        #         ((select get_id_langue('{langue}')),'{count}','{mots}','{num_page}',(select get_id_livre('{livre}'))),"""
+        #         # ST_MakeEnvelope({element["coord"]["x"]}, {element["coord"]["y"]}, {element["coord"]["x2"]}, {element["coord"]["y2"]})))), pylint: disable=line-too-long
+
+        # except:
+        #     pass
+        if element != "":
+            element = element.replace("'", "''")
             requete += f"""
-            ((select get_id_langue('{langue}')),'{count}','{mot}','{num_page}',(select get_id_livre('{livre}'))),"""
+                ((select get_id_langue('{langue}')),'{count}','{element}','{num_page}',(select get_id_livre('{livre}'))),"""
+
     requete = requete[0 : len(requete) - 1] + ";"
     cur.execute(requete)
 
 
-def modif_data(langue, text, sens):
-    """_summary_
-
-    Args:
-        cur (_type_): _description_
-        langue (_type_): _description_
-    """
+def modif_data(langue, text, sens):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            # todo row trigger after insert
             cur.execute(
                 """INSERT INTO data (id_langue , sens , traduction , numero_page)
                         VALUES((select get_id_langue(%(langue)s)),%(sens)s,%(text)s,
@@ -96,13 +95,10 @@ def modif_data(langue, text, sens):
             )
 
 
-def search(keyword, langue, langue_base, offset):
-    """_summary_
+def search(
+    keyword, engine, langue, langue_base, offset
+):  # pylint: disable=missing-function-docstring
 
-    Args:
-        cur (_type_): _description_
-        langue (_type_): _description_
-    """
     res = []
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
@@ -200,22 +196,35 @@ def search(keyword, langue, langue_base, offset):
             #         "offset": offset,
             #     },
             # )
-            cur.execute(
-                """
-                SELECT DISTINCT count(sens) FROM data
-                    WHERE to_tsvector(traduction) @@ to_tsquery(%(keyword)s)
-                    AND id_langue=(select get_id_langue(%(langue_base)s))""",
-                {
-                    "keyword": keyword,
-                    "langue_base": langue_base,
-                },
-            )
+            if engine == "tsquery":
+                cur.execute(
+                    """
+                    SELECT DISTINCT count(sens) FROM data
+                        WHERE to_tsvector(traduction) @@ to_tsquery(%(keyword)s)
+                        AND id_langue=(select get_id_langue(%(langue_base)s))""",
+                    {
+                        "keyword": keyword,
+                        "langue_base": langue_base,
+                    },
+                )
+            elif engine == "regex":
+                cur.execute(
+                    """
+                    SELECT DISTINCT count(sens) FROM data
+                        WHERE traduction ~* %(keyword)s
+                        AND id_langue=(select get_id_langue(%(langue_base)s))""",
+                    {
+                        "keyword": keyword,
+                        "langue_base": langue_base,
+                    },
+                )
             count = cur.fetchone()[0]
 
             cur.execute(
-                "Select * from search(%(keyword)s,%(langue)s,%(langue_base)s,%(offset)s)",
+                "Select * from search(%(keyword)s,%(engine)s,%(langue)s,%(langue_base)s,%(offset)s)",
                 {
                     "keyword": keyword,
+                    "engine": engine,
                     "langue": langue,
                     "langue_base": langue_base,
                     "offset": offset,
@@ -226,7 +235,7 @@ def search(keyword, langue, langue_base, offset):
     return [res, count]
 
 
-def get_page_db(livre, num_page):
+def get_page_db(livre, num_page):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
@@ -236,7 +245,7 @@ def get_page_db(livre, num_page):
             return cur.fetchall()
 
 
-def history(sens, langue):
+def history(sens, langue):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
@@ -248,7 +257,7 @@ def history(sens, langue):
             return cur.fetchall()
 
 
-def list_langue(livre="all"):
+def list_langue(livre="all"):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             if livre == "all":
@@ -269,8 +278,28 @@ def list_langue(livre="all"):
             return res
 
 
-def insert_from_csv(filename, liste_langue, add_line_func):
-    """_summary_"""
+def nb_page(livre):  # pylint: disable=missing-function-docstring
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT nom_langue FROM langue
+                WHERE id_langue IN (SELECT id_langue
+                                FROM langue_dans_un_livre
+                                WHERE id_livre = (SELECT get_id_livre(%(livre)s)))
+                        """,
+                {"livre": livre},
+            )
+            tempory = cur.fetchall()
+            print(tempory)
+            res = []
+            for langue in tempory:
+                res.append(langue[0])
+            return res
+
+
+def insert_from_csv(
+    filename, liste_langue, add_line_func
+):  # pylint: disable=missing-function-docstring
     filename_csv = "release/" + filename + ".csv"
     reset_table()
 
@@ -287,9 +316,7 @@ def insert_from_csv(filename, liste_langue, add_line_func):
                 with tqdm(total=len(liste_line)) as pbar:
                     count = 0
                     for line in liste_line:
-                        add_line_func(
-                            cur, line.replace("\n", ""), filename, liste_langue, count
-                        )
+                        add_line_func(cur, line, filename, liste_langue, count)
                         count += 1
                         pbar.update()
 
