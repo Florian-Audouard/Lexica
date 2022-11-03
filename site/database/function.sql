@@ -15,7 +15,6 @@ CREATE OR REPLACE FUNCTION get_id_livre(l livre.nom_livre%TYPE)
     $$
     LANGUAGE SQL
     STABLE;
-DROP FUNCTION IF EXISTS query_engine;
 DROP FUNCTION IF EXISTS tsquery_engine;
 CREATE OR REPLACE FUNCTION tsquery_engine(keyword data.traduction%TYPE, langue_base langue.nom_langue%TYPE, offset_num int)
     RETURNS TABLE(
@@ -142,5 +141,23 @@ CREATE OR REPLACE FUNCTION search_by_page(page int, livre livre.nom_livre%TYPE)
         SELECT langue.nom_langue,data.traduction,data.sens
                         FROM data JOIN langue ON data.id_langue = langue.id_langue
                         WHERE data.id_data IN (select * from page_engine(page,livre)) ORDER BY data.sens;   
-        END
+    END
     $funcSearch$;
+
+DROP FUNCTION IF EXISTS get_count_by_engine;
+CREATE OR REPLACE FUNCTION get_count_by_engine(keyword text,engine text , langue_base langue.nom_langue%TYPE)
+    RETURNS int
+    LANGUAGE plpgsql  AS
+    $$
+    BEGIN
+        IF engine = 'tsquery' THEN
+            RETURN (SELECT count(DISTINCT sens)::int FROM data
+                WHERE to_tsvector(traduction) @@ to_tsquery(keyword)
+                        AND id_langue=(select get_id_langue(langue_base)));
+        ELSIF engine = 'regex' THEN
+            RETURN (SELECT count(DISTINCT sens)::int FROM data
+                WHERE traduction ~* keyword
+                        AND id_langue=(select get_id_langue(langue_base)));
+        END IF;
+    END
+    $$;

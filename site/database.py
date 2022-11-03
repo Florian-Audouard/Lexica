@@ -84,9 +84,10 @@ def modif_data(langue, text, sens):  # pylint: disable=missing-function-docstrin
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO data (id_langue , sens , traduction , numero_page)
+                """INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre)
                         VALUES((select get_id_langue(%(langue)s)),%(sens)s,%(text)s,
-                        (SELECT DISTINCT numero_page FROM data where sens=%(sens)s))""",
+                        (SELECT DISTINCT numero_page FROM data where sens=%(sens)s),
+                        (SELECT DISTINCT id_livre FROM data where sens=%(sens)s))""",
                 {
                     "langue": langue,
                     "text": text,
@@ -107,35 +108,6 @@ def search(
             # enfin https://www.postgresql.org/docs/current/pgtrgm.html
             # peut etre https://www.postgresql.org/docs/current/fuzzystrmatch.html
             # apres https://www.postgresql.org/docs/current/textsearch.html
-
-            # * REGEXP
-            # cur.execute(
-            #     """
-            #     SELECT DISTINCT count(sens) FROM data
-            #         WHERE traduction ~* %(keyword)s
-            #         AND id_langue=(select get_id_langue(%(langueBase)s))""",
-            #     {
-            #         "keyword": keyword,
-            #         "langueBase": langue_base,
-            #     },
-            # )
-            # count = cur.fetchone()[0]
-            # print(count)
-            # cur.execute(
-            #     """
-            #     SELECT DISTINCT sens FROM data
-            #         WHERE traduction ~* %(keyword)s
-            #         AND id_langue=(select get_id_langue(%(langueBase)s))
-            #         ORDER BY sens
-            #         LIMIT 25
-            #         OFFSET %(offset)s;
-            #         """,
-            #     {
-            #         "keyword": keyword,
-            #         "langueBase": langue_base,
-            #         "offset": offset,
-            #     },
-            # )
 
             # * TSQUERY
 
@@ -196,28 +168,14 @@ def search(
             #         "offset": offset,
             #     },
             # )
-            if engine == "tsquery":
-                cur.execute(
-                    """
-                    SELECT DISTINCT count(sens) FROM data
-                        WHERE to_tsvector(traduction) @@ to_tsquery(%(keyword)s)
-                        AND id_langue=(select get_id_langue(%(langue_base)s))""",
-                    {
-                        "keyword": keyword,
-                        "langue_base": langue_base,
-                    },
-                )
-            elif engine == "regex":
-                cur.execute(
-                    """
-                    SELECT DISTINCT count(sens) FROM data
-                        WHERE traduction ~* %(keyword)s
-                        AND id_langue=(select get_id_langue(%(langue_base)s))""",
-                    {
-                        "keyword": keyword,
-                        "langue_base": langue_base,
-                    },
-                )
+            cur.execute(
+                "SELECT get_count_by_engine(%(keyword)s,%(engine)s,%(langue_base)s)",
+                {
+                    "keyword": keyword,
+                    "engine": engine,
+                    "langue_base": langue_base,
+                },
+            )
             count = cur.fetchone()[0]
 
             cur.execute(
