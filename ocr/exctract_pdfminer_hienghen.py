@@ -61,7 +61,7 @@ def get_parser():
         action="store",
         default=70,
         type=int,
-        help="aproximation en hauteur",
+        help="aproximation en largeur",
     )
     parser.add_argument(
         "--aprox_y",
@@ -69,7 +69,7 @@ def get_parser():
         action="store",
         default=10,
         type=int,
-        help="aproximation en largeur",
+        help="aproximation en heauteur",
     )
     parser.add_argument("--show", action="store_true")
 

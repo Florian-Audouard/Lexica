@@ -21,43 +21,59 @@ h, w, _ = img.shape
 
 pytesseract.pytesseract.tesseract_cmd = r"lib\Tesseract-OCR\tesseract"
 
-dict_ocr = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+dict_ocr = pytesseract.image_to_data(
+    img, output_type=pytesseract.Output.DICT, config="--psm 4"
+)
 
 
 array_boxe = []
 
 
-def concat_boxe(array_boxe_func, dict_test, index_dict, aprox_x=50, aprox_y=10):
-    for index, element_boxe in enumerate(array_boxe_func):
-        if not index == index_dict:
-            space_horizontal_between = abs(
-                dict_test["left"] - (element_boxe["left"] + element_boxe["width"])
-            )
-            space_vertical_between = abs(
-                dict_test["top"] - (element_boxe["top"] + element_boxe["height"])
-            )
-            # if element_boxe["text"] in "aller" and dict_test["text"] in "(déplacement":
-            # print("dict test", dict_test)
-            # print("element_boxe", element_boxe)
-            if space_horizontal_between < aprox_x and space_vertical_between < aprox_y:
-                array_boxe_func.pop(index)
-                array_boxe_func.pop(index_dict)
-                array_boxe_func.append(
-                    {
-                        "top": min(dict_test["top"], element_boxe["top"]),
-                        "left": min(dict_test["left"], element_boxe["left"]),
-                        "width": element_boxe["width"]
-                        + dict_test["width"]
-                        + space_horizontal_between,
-                        "height": element_boxe["height"]
-                        + dict_test["height"]
-                        + space_vertical_between,
-                        "text": dict_test["text"] + " " + element_boxe["text"],
-                    }
-                )
+def compare(elem1, elem2):
+    if elem1["top"] == elem2["top"] and elem1["left"] == elem2["left"]:
+        return True
 
-                return (array_boxe_func, True)
-    return (array_boxe_func, False)
+
+def return_index_of_array(array, element):
+    for test in array:
+        if compare(test, element):
+            return array.index(test)
+    # print(element, array)
+
+
+def concat_box(array, approx_top=50):
+    res = []
+    for element1 in array:
+        res.append(element1)
+        for element2 in res:
+            if not compare(element1, element2):
+                dif_top = element1["top"] - element2["top"]
+                dif_left = element1["left"] - element2["left"]
+                if abs(dif_top) < approx_top:
+                    if element1["left"] < element2["left"]:
+                        text = element1["text"] + " " + element2["text"]
+                    else:
+                        text = element2["text"] + " " + element1["text"]
+                    to_add = {
+                        "top": min(element1["top"], element2["top"]),
+                        "left": min(element2["left"], element1["left"]),
+                        "width": max(
+                            element1["left"] + element1["width"],
+                            element2["left"] + element2["width"],
+                        )
+                        - min(element1["left"], element2["left"]),
+                        "height": max(
+                            element1["top"] + element1["height"],
+                            element2["top"] + element2["height"],
+                        )
+                        - min(element1["top"], element2["top"]),
+                        "text": text,
+                    }
+                    array.append(to_add)
+                    res.append(to_add)
+                    del res[res.index(element2)]
+
+    return res
 
 
 for i in range(len(dict_ocr["text"])):
@@ -73,13 +89,7 @@ for i in range(len(dict_ocr["text"])):
         array_boxe.append(my_dict)
 
 
-test = True
-while test:
-    for index_recur, element_recur in enumerate(array_boxe):
-        array_boxe, test = concat_boxe(array_boxe, element_recur, index_recur)
-
-
-for element in array_boxe:
+for element in concat_box(array_boxe):
     img = cv2.rectangle(
         img,
         (

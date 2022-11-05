@@ -9,21 +9,39 @@ const urlParam = new URLSearchParams(window.location.search);
 const livre = urlParam.get("livre");
 const numPage = parseInt(urlParam.get("page"));
 const showBox = urlParam.get("showBox") === "true";
-
+// todo a changé par une valeur prise dans le pdf
+const MAX_NUM_PAGE = 274;
 resetSaveChange();
 
 let editButton = document.querySelector("#edit");
 let sendButton = document.querySelector("#send");
 let checkBox = document.querySelector("#showBox");
+let selectPage = document.querySelector("#selectPage");
+for (let i = 0; i <= MAX_NUM_PAGE; i++) {
+	console.log("oui");
+	const option = document.createElement("option");
+	option.value = i;
+	option.innerText = i;
+	selectPage.appendChild(option);
+}
 checkBox.checked = showBox;
 let livreBox = livre + "-rectangle";
 let livreStart = livre;
 if (showBox) {
 	livreStart = livreBox;
 }
+selectPage.value = numPage;
 document.querySelector(
 	"#pdfViewer"
 ).src = `static/pdf/${livreStart}.pdf#page=${numPage}`;
+
+function changePage(num) {
+	const url = new URL(window.location);
+	if (numPage > 1) {
+		const newURL = `${url.pathname}?livre=${livre}&page=${num}&showBox=${showBox}`;
+		window.location.href = newURL;
+	}
+}
 
 function changePdfBox(bool) {
 	if (checkBox.checked) {
@@ -103,5 +121,6 @@ function prev() {
 		window.location.href = newURL;
 	}
 }
-
-// selectText method taken from http://stackoverflow.com/a/11128179/782034
+selectPage.onchange = (e) => {
+	changePage(e.target.value);
+};
