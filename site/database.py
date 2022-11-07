@@ -30,6 +30,7 @@ def update_function():  # pylint: disable=missing-function-docstring
         with conn.cursor() as cur:
             with open(FILENAME_FUNCTION_SHEMA, "r", encoding="utf-8") as file:
                 cur.execute(file.read())
+                print("function update !")
 
 
 def reset_table():  # pylint: disable=missing-function-docstring
@@ -53,28 +54,20 @@ def add_langue(cur, langue, livre):  # pylint: disable=missing-function-docstrin
 
 
 def hienghene_process(
-    cur, line, livre, liste_langue, count
+    cur, line, livre, count
 ):  # pylint: disable=missing-function-docstring
     liste_line = line.split(";")
     num_page = liste_line[len(liste_line) - 1]
     del liste_line[len(liste_line) - 1]
     requete = "INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre) VALUES "
-    for langue, element in zip(liste_langue, liste_line):
-        # try:
-        #     json_obj = json.loads(element)
-        #     mots = json_obj["text"]
-        #     if mots != "":
-        #         mots = mots.replace("'", "''")
-        #         requete += f"""
-        #         ((select get_id_langue('{langue}')),'{count}','{mots}','{num_page}',(select get_id_livre('{livre}'))),"""
-        #         # ST_MakeEnvelope({element["coord"]["x"]}, {element["coord"]["y"]}, {element["coord"]["x2"]}, {element["coord"]["y2"]})))), pylint: disable=line-too-long
-
-        # except:
-        #     pass
-        if element != "":
-            element = element.replace("'", "''")
+    for element in liste_line:
+        element_array = element.split("#@#")
+        langue = element_array[0]
+        text = element_array[1]
+        if text != "":
+            text = text.replace("'", "''")
             requete += f"""
-                ((select get_id_langue('{langue}')),'{count}','{element}','{num_page}',(select get_id_livre('{livre}'))),"""
+                ((select get_id_langue('{langue}')),'{count}','{text}','{num_page}',(select get_id_livre('{livre}'))),"""
 
     requete = requete[0 : len(requete) - 1] + ";"
     cur.execute(requete)
@@ -274,8 +267,8 @@ def insert_from_csv(
                 with tqdm(total=len(liste_line)) as pbar:
                     count = 0
                     for line in liste_line:
-                        add_line_func(cur, line, filename, liste_langue, count)
-                        count += 1
+                        add_line_func(cur, line, filename, count)
+                        count += 10
                         pbar.update()
 
 

@@ -25,13 +25,13 @@ CREATE OR REPLACE FUNCTION tsquery_engine(keyword data.traduction%TYPE, langue_b
     BEGIN
         RETURN QUERY
         SELECT id_data FROM data INNER JOIN (SELECT data.sens,data.id_langue,max(data.date_creation) FROM data
-                                WHERE data.sens IN (SELECT DISTINCT data.sens FROM data
-                                                        WHERE to_tsvector(data.traduction) @@ to_tsquery(keyword)
-                                                        AND id_langue=(select get_id_langue(langue_base))
+                                                GROUP BY data.sens,data.id_langue) AS tmp 
+                                                ON data.sens=tmp.sens AND data.id_langue=tmp.id_langue AND data.date_creation = tmp.max
+                                                    WHERE to_tsvector(data.traduction) @@ to_tsquery(keyword)
+                                                    AND data.id_langue=(select get_id_langue(langue_base))
                                                         ORDER BY data.sens
                                                         LIMIT 25
-                                                        OFFSET offset_num) GROUP BY data.sens,data.id_langue) AS tmp 
-                                                        ON data.sens=tmp.sens AND data.id_langue=tmp.id_langue AND data.date_creation = tmp.max;
+                                                        OFFSET offset_num;
     END
     $tsquery_engine$;
 
@@ -45,13 +45,13 @@ CREATE OR REPLACE FUNCTION regex_engine(keyword data.traduction%TYPE, langue_bas
     BEGIN
         RETURN QUERY
         SELECT id_data FROM data INNER JOIN (SELECT data.sens,data.id_langue,max(data.date_creation) FROM data
-                                WHERE data.sens IN (SELECT DISTINCT data.sens FROM data
-                                                        WHERE data.traduction ~* keyword
-                                                        AND id_langue=(select get_id_langue(langue_base))
+                                                GROUP BY data.sens,data.id_langue) AS tmp 
+                                                ON data.sens=tmp.sens AND data.id_langue=tmp.id_langue AND data.date_creation = tmp.max
+                                                    WHERE data.traduction ~* keyword
+                                                    AND data.id_langue=(select get_id_langue(langue_base))
                                                         ORDER BY data.sens
                                                         LIMIT 25
-                                                        OFFSET offset_num) GROUP BY data.sens,data.id_langue) AS tmp 
-                                                        ON data.sens=tmp.sens AND data.id_langue=tmp.id_langue AND data.date_creation = tmp.max;
+                                                        OFFSET offset_num;
     END
     $regex_engine$;
 

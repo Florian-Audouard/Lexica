@@ -38,7 +38,7 @@ document.querySelector(
 function changePage(num) {
 	const url = new URL(window.location);
 	if (numPage > 1) {
-		const newURL = `${url.pathname}?livre=${livre}&page=${num}&showBox=${showBox}`;
+		const newURL = `${url.pathname}?livre=${livre}&page=${num}&showBox=${checkBox.checked}`;
 		window.location.href = newURL;
 	}
 }
@@ -104,22 +104,11 @@ fetch("/getPage", {
 
 document.querySelector("#next").onclick = next;
 function next() {
-	// todo ajout capteur de fin de document
-	const url = new URL(window.location);
-	const newURL = `${url.pathname}?livre=${livre}&page=${
-		numPage + 1
-	}&showBox=${showBox}`;
-	window.location.href = newURL;
+	changePage(numPage + 1);
 }
 document.querySelector("#prev").onclick = prev;
 function prev() {
-	const url = new URL(window.location);
-	if (numPage > 1) {
-		const newURL = `${url.pathname}?livre=${livre}&page=${
-			numPage - 1
-		}&showBox=${showBox}`;
-		window.location.href = newURL;
-	}
+	changePage(numPage - 1);
 }
 selectPage.onchange = (e) => {
 	changePage(e.target.value);
