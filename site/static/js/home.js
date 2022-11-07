@@ -191,6 +191,34 @@ async function main() {
 		input.value = keyword;
 		baseSelect.value = langueBase;
 		engineSelect.value = engine;
+		resultSelect.value = langueTarget;
+		resultSelect.onchange = (_) => {
+			changePage(
+				keyword,
+				engine,
+				langueBase,
+				resultSelect.value,
+				numPage
+			);
+		};
+		engineSelect.onchange = (_) => {
+			changePage(
+				keyword,
+				engineSelect.value,
+				langueBase,
+				langueTarget,
+				numPage
+			);
+		};
+		baseSelect.onchange = (_) => {
+			changePage(
+				keyword,
+				engine,
+				baseSelect.value,
+				langueTarget,
+				numPage
+			);
+		};
 		await search(keyword, engine, langueBase, langueTarget, numPage);
 	}
 

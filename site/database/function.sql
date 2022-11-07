@@ -96,7 +96,8 @@ CREATE OR REPLACE FUNCTION search(keyword data.traduction%TYPE,engine text, lang
             SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page , livre.nom_livre
                             FROM data JOIN livre ON data.id_livre = livre.id_livre
                             JOIN langue ON data.id_langue = langue.id_langue
-                            WHERE data.id_data IN  (SELECT * FROM get_result(keyword,engine,langue_base,offset_num)) ORDER BY data.sens;
+                            WHERE data.sens in (SELECT data.sens FROM data WHERE data.id_data IN 
+                                (SELECT * FROM get_result(keyword,engine,langue_base,offset_num))) ORDER BY data.sens;
         ELSE
         RETURN QUERY
             SELECT langue.nom_langue,data.traduction,data.sens,data.numero_page , livre.nom_livre
@@ -104,7 +105,8 @@ CREATE OR REPLACE FUNCTION search(keyword data.traduction%TYPE,engine text, lang
                             JOIN langue ON data.id_langue = langue.id_langue 
                             WHERE (data.id_langue=(select get_id_langue(langue_base))
                                     OR data.id_langue=(select get_id_langue(langue_target)))
-                            AND data.id_data IN (SELECT * FROM get_result(keyword,engine,langue_base,offset_num)) ORDER BY data.sens;    
+                            AND data.sens in (SELECT data.sens FROM data WHERE data.id_data IN 
+                                    (SELECT * FROM get_result(keyword,engine,langue_base,offset_num))) ORDER BY data.sens;    
         END IF;
         END
     $funcSearch$;

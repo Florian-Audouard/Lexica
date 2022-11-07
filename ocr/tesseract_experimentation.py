@@ -387,25 +387,28 @@ def from_line_to_csv(array):
         lang = get_closest_lang(elem)
         elem["langue"] = lang
         if lang in tmp:
-            tmp[lang]["text"] += "||" + elem["text"] + " (error)"
+            tmp[lang]["text"] += " ||" + elem["text"] + " (error)"
         else:
             tmp[lang] = elem
-    for _, elem in tmp.items():
-        res += (
-            elem["langue"]
-            + DELIM
-            + " ".join(elem["text"].split())
-            + DELIM
-            + str(elem["top"])
-            + DELIM
-            + str(elem["left"])
-            + DELIM
-            + str(elem["width"])
-            + DELIM
-            + str(elem["height"])
-            + ";"
-        )
-    return res[0 : len(res) - 1]
+    if len(tmp) > 1:
+        for _, elem in tmp.items():
+            res += (
+                elem["langue"]
+                + DELIM
+                + " ".join(elem["text"].split())
+                + DELIM
+                + str(elem["top"])
+                + DELIM
+                + str(elem["left"])
+                + DELIM
+                + str(elem["width"])
+                + DELIM
+                + str(elem["height"])
+                + ";"
+            )
+        return res[0 : len(res) - 1]
+    else:
+        return ""
 
 
 def find_title_coord(array):
@@ -524,27 +527,30 @@ def find_clear_box(
                 img,
             )
 
-        if output_type == "pdf" and pdf_file_output is not None:
-            pdf_output_width = pdf_file_output[num_page - 1].rect.width
-            pdf_output_height = pdf_file_output[num_page - 1].rect.height
-            for element in save_overlap:
-                pdf_file_output[num_page - 1].draw_rect(
-                    [
-                        (element["left"] * pdf_output_width) / img_width,
-                        (element["top"] * pdf_output_height) / img_height,
-                        ((element["left"] * pdf_output_width) / img_width)
-                        + ((element["width"] * pdf_output_width) / img_width),
-                        ((element["top"] * pdf_output_height) / img_height)
-                        + ((element["height"] * pdf_output_height) / img_height),
-                    ],
-                    # [50, 300, 100, 400],
-                    color=(0, 0, 1),
-                    width=1,
-                )
         save_line_array = from_array_to_line(save_overlap)
         for line in save_line_array.items():
-            if len(line[1]) > 1:
-                csv.write(from_line_to_csv(line[1]) + ";" + str(num_page) + "\n")
+            res = from_line_to_csv(line[1])
+            if res != "":
+                if output_type == "pdf" and pdf_file_output is not None:
+                    pdf_output_width = pdf_file_output[num_page - 1].rect.width
+                    pdf_output_height = pdf_file_output[num_page - 1].rect.height
+                    for element in line[1]:
+                        pdf_file_output[num_page - 1].draw_rect(
+                            [
+                                (element["left"] * pdf_output_width) / img_width,
+                                (element["top"] * pdf_output_height) / img_height,
+                                ((element["left"] * pdf_output_width) / img_width)
+                                + ((element["width"] * pdf_output_width) / img_width),
+                                ((element["top"] * pdf_output_height) / img_height)
+                                + (
+                                    (element["height"] * pdf_output_height) / img_height
+                                ),
+                            ],
+                            # [50, 300, 100, 400],
+                            color=(0, 0, 1),
+                            width=1,
+                        )
+                csv.write(res + ";" + str(num_page) + "\n")
 
 
 if __name__ == "__main__":
