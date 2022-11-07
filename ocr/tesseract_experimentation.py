@@ -546,10 +546,45 @@ def find_clear_box(
                                     (element["height"] * pdf_output_height) / img_height
                                 ),
                             ],
-                            # [50, 300, 100, 400],
                             color=(0, 0, 1),
                             width=1,
                         )
+                    min_left = min(line[1], key=lambda x: x["left"])
+                    min_left_val = (min_left["left"] * pdf_output_width) / img_width
+                    min_top = min(line[1], key=lambda x: x["top"])
+                    min_top_val = (min_top["top"] * pdf_output_height) / img_height
+                    max_width = max(
+                        line[1],
+                        key=lambda x: (x["left"] + x["width"]) - min_left["left"],
+                    )
+                    max_width_val = (
+                        ((max_width["left"] + max_width["width"])) * pdf_output_width
+                    ) / img_width
+                    max_height = max(
+                        line[1],
+                        key=lambda x: (x["top"] + x["height"]) - min_top["top"],
+                    )
+                    max_height_val = (
+                        ((max_height["top"] + max_height["height"])) * pdf_output_height
+                    ) / img_height
+                    # print(
+                    #     [
+                    #         min_left_val - 1,
+                    #         min_top_val - 1,
+                    #         (min_left_val - 1) + max_width_val + 1,
+                    #         (min_top_val - 1) + max_height_val + 1,
+                    #     ]
+                    # )
+                    pdf_file_output[num_page - 1].draw_rect(
+                        [
+                            min_left_val - 1,
+                            min_top_val - 1,
+                            max_width_val + 1,
+                            max_height_val + 1,
+                        ],
+                        color=(0.8, 0, 0),
+                        width=1,
+                    )
                 csv.write(res + ";" + str(num_page) + "\n")
 
 
@@ -560,6 +595,7 @@ if __name__ == "__main__":
     with open(file_input, "rb") as pdf_file:
         START = 64
         END = 252
+
         i = 1
 
         numero_page = args.page
