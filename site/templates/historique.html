@@ -6,10 +6,12 @@
     <title>Historique</title>
     <script defer src="static/js/script-historique.js"></script>
     <link href="static/css/style.css" rel="stylesheet">
+    <link href="static/css/historique.css" rel="stylesheet">
 </head>
 
 <body>
     <div id="presentation"></div>
+    <div id="unsupported-extention-popup" hidden></div>
     <table id="table">
         <thead>
             <tr>
@@ -19,6 +21,11 @@
         <tbody id="resultHistory"></tbody>
         </thead>
     </table>
+    <div class="drag-audio">
+        <header>Ajouter un fichier audio</header>
+        <span>OU</span>
+        <button>Chercher un fichier</button>
+    </div>
 </body>
 
 </html>

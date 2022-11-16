@@ -269,7 +269,7 @@ def get_the_smallest_overlap(array, elem_test):
     return smallest
 
 
-def suppr_overlap(array):
+def suppr_overlap(array):  # pylint: disable=missing-function-docstring
     res = []
     change = True
     while change:
@@ -298,7 +298,7 @@ def suppr_overlap(array):
     return res
 
 
-def particionner(tab, deb, fin, func):
+def particionner(tab, deb, fin, func):  # pylint: disable=missing-function-docstring
     if deb < fin:
         curent = deb
         for i in range(deb + 1, fin):
@@ -312,11 +312,11 @@ def particionner(tab, deb, fin, func):
         particionner(tab, curent + 1, fin, func)
 
 
-def triRapide(tab, func):
+def triRapide(tab, func):  # pylint: disable=missing-function-docstring
     particionner(tab, 0, len(tab), func)
 
 
-def compare_sort(elem1, elem2):
+def compare_sort(elem1, elem2):  # pylint: disable=missing-function-docstring
     if elem1["top"] + elem1["height"] < elem2["top"]:
         return 0
     if elem2["top"] + elem2["height"] < elem1["top"]:
@@ -354,7 +354,7 @@ def overlap_from_two_array(
     return res
 
 
-def from_array_to_line(array):
+def from_array_to_line(array):  # pylint: disable=missing-function-docstring
     fr_col = get_fr_column(array)
     res = {}
     for fr_elem in fr_col:
@@ -365,7 +365,7 @@ def from_array_to_line(array):
     return res
 
 
-def get_closest_lang(elem):
+def get_closest_lang(elem):  # pylint: disable=missing-function-docstring
     res = "français"
     for langue in COLLUMN_TO_LANGUE:
         # print(elem["left"])
@@ -379,23 +379,28 @@ def get_closest_lang(elem):
     return res
 
 
-def from_line_to_csv(array):
+def from_line_to_csv(array):  # pylint: disable=missing-function-docstring
     res = ""
     tmp = {}
     for elem in array:
         # print(array)
         lang = get_closest_lang(elem)
         elem["langue"] = lang
+        error = False
         if lang in tmp:
-            tmp[lang]["text"] += " ||" + elem["text"] + " (error)"
+            tmp[lang]["text"] += " " + elem["text"]
+            error = True
         else:
             tmp[lang] = elem
+        tmp[lang]["error"] = error
     if len(tmp) > 1:
         for _, elem in tmp.items():
             res += (
                 elem["langue"]
                 + DELIM
                 + " ".join(elem["text"].split())
+                + DELIM
+                + str(elem["error"])
                 + DELIM
                 + str(elem["top"])
                 + DELIM
@@ -411,7 +416,7 @@ def from_line_to_csv(array):
         return ""
 
 
-def find_title_coord(array):
+def find_title_coord(array):  # pylint: disable=missing-function-docstring
     tmp = []
     for elem in array:
         if len(list(set(elem["text"].lower().split()).intersection(LANGUE_LIST))) != 0:
@@ -431,7 +436,7 @@ def find_title_coord(array):
     return res / count
 
 
-def get_title_list(array):
+def get_title_list(array):  # pylint: disable=missing-function-docstring
     tmp = []
     for elem in array:
         if abs(elem["top"] - (TITLE_TOP - 50)) < 30:
@@ -446,7 +451,7 @@ def get_title_list(array):
 
 def find_clear_box(
     pdf_img, file_output_name, csv, output_type, pdf_file_output=None, num_page=0
-):
+):  # pylint: disable=missing-function-docstring
     mat = fitz.Matrix(6, 6)
     pix = pdf_img.get_pixmap(matrix=mat)
     imgData = pix.tobytes("png")
@@ -567,14 +572,6 @@ def find_clear_box(
                     max_height_val = (
                         ((max_height["top"] + max_height["height"])) * pdf_output_height
                     ) / img_height
-                    # print(
-                    #     [
-                    #         min_left_val - 1,
-                    #         min_top_val - 1,
-                    #         (min_left_val - 1) + max_width_val + 1,
-                    #         (min_top_val - 1) + max_height_val + 1,
-                    #     ]
-                    # )
                     pdf_file_output[num_page - 1].draw_rect(
                         [
                             min_left_val - 1,

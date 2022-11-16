@@ -4,7 +4,6 @@ Returns:
     _type_: _description_
 """
 import os
-import json
 import urllib.parse
 import psycopg
 
@@ -59,28 +58,35 @@ def hienghene_process(
     liste_line = line.split(";")
     num_page = liste_line[len(liste_line) - 1]
     del liste_line[len(liste_line) - 1]
-    requete = "INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre) VALUES "
+    requete = "INSERT INTO data (id_langue , sens , numero_page,id_livre,error) VALUES"
+    requete2 = "INSERT INTO version (id_data,traduction) VALUES"
     for element in liste_line:
         element_array = element.split("#@#")
         langue = element_array[0]
         text = element_array[1]
+        error = element_array[2]
         if text != "":
             text = text.replace("'", "''")
+            int_error = 0
+            if error == "True":
+                int_error = 1
             requete += f"""
-                ((select get_id_langue('{langue}')),'{count}','{text}','{num_page}',(select get_id_livre('{livre}'))),"""
+                ((select get_id_langue('{langue}')),'{count}','{num_page}',(select get_id_livre('{livre}')),{int_error}),"""
+            requete2 += f"""
+                        ((select get_id_data({count},'{langue}')),'{text}'),"""
 
     requete = requete[0 : len(requete) - 1] + ";"
+    requete2 = requete2[0 : len(requete2) - 1] + ";"
     cur.execute(requete)
+    cur.execute(requete2)
 
 
 def modif_data(langue, text, sens):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO data (id_langue , sens , traduction , numero_page,id_livre)
-                        VALUES((select get_id_langue(%(langue)s)),%(sens)s,%(text)s,
-                        (SELECT DISTINCT numero_page FROM data where sens=%(sens)s),
-                        (SELECT DISTINCT id_livre FROM data where sens=%(sens)s))""",
+                """INSERT INTO version (id_data,traduction)
+                        VALUES((select get_id_data(%(sens)s,%(langue)s)),%(text)s)""",
                 {
                     "langue": langue,
                     "text": text,
@@ -200,8 +206,8 @@ def history(sens, langue):  # pylint: disable=missing-function-docstring
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT date_creation,traduction FROM data
-                    WHERE sens=%(sens)s and id_langue=(select get_id_langue(%(langue)s))
+                """SELECT date_creation,traduction FROM complete_table
+                    WHERE sens=%(sens)s and nom_langue=%(langue)s
                     ORDER BY date_creation desc;""",
                 {"sens": sens, "langue": langue},
             )
@@ -248,6 +254,37 @@ def nb_page(livre):  # pylint: disable=missing-function-docstring
             return res
 
 
+def update_link(sens, langue, audio_link):  # pylint: disable=missing-function-docstring
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE data set audio_link = %(audio_link)s
+                    WHERE id_data IN (SELECT id_data FROM data_current
+                                        WHERE nom_langue=%(langue)s AND sens=%(sens)s)""",
+                {"audio_link": audio_link, "langue": langue, "sens": sens},
+            )
+
+
+def get_error():  # pylint: disable=missing-function-docstring
+    with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                        SELECT nom_langue FROM langue WHERE id_langue IN (
+                            SELECT DISTINCT id_langue FROM data WHERE error = 1);
+                        """
+            )
+            liste_langue = cur.fetchall()
+            cur.execute(
+                """SELECT date_creation,traduction FROM data_current
+                    JOIN langue ON data.id_langue = langue.id_langue
+                        WHERE error = 1
+                        ORDER BY date_creation desc;"""
+            )
+            error_table = cur.fetchall()
+            return (liste_langue, error_table)
+
+
 def insert_from_csv(
     filename, liste_langue, add_line_func
 ):  # pylint: disable=missing-function-docstring
@@ -268,7 +305,7 @@ def insert_from_csv(
                     count = 0
                     for line in liste_line:
                         add_line_func(cur, line, filename, count)
-                        count += 10
+                        count += 1
                         pbar.update()
 
 

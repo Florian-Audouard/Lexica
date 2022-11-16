@@ -5,7 +5,9 @@ Returns:
 """
 import os
 import json
+from tkinter import EXCEPTION
 from flask import Flask, jsonify, render_template, request, redirect
+from werkzeug.utils import secure_filename
 from database import (
     search,
     modif_data,
@@ -13,6 +15,7 @@ from database import (
     history,
     get_page_db,
     update_function,
+    update_link,
 )
 
 
@@ -40,7 +43,8 @@ def fetch_search():  # pylint: disable=missing-function-docstring
             offset=offset,
         )
         return jsonify({"table": res[0], "count": res[1], "verif": "ok"})
-    except:
+    except Exception as e:
+        print(e)
         return jsonify({"verif": "error"})
 
 
@@ -92,6 +96,17 @@ def historique():  # pylint: disable=missing-function-docstring
 @app.route("/correction-page")
 def correction_page():  # pylint: disable=missing-function-docstring
     return render_template("correction-page.html")
+
+
+@app.route("/receiveAudio", methods=["POST"])
+def receive_audio():  # pylint: disable=missing-function-docstring
+    file = request.files["file"]
+    sens = request.form["sens"]
+    langue = request.form["langue"]
+    secure_name = secure_filename(file.filename)
+    update_link(sens, langue, secure_name)
+    file.save(os.path.join("./static/audio/", secure_name))
+    return "ok"
 
 
 if __name__ == "__main__":
