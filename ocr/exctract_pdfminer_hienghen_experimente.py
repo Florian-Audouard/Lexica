@@ -8,7 +8,6 @@ import collections
 import argparse
 
 import os
-import json
 from pathlib import Path
 
 from pdfminer.pdfpage import PDFPage

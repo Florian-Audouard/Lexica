@@ -4,7 +4,6 @@ Returns:
     _type_: _description_
 """
 import os
-import json
 from tkinter import EXCEPTION
 from flask import Flask, jsonify, render_template, request, redirect
 from werkzeug.utils import secure_filename
