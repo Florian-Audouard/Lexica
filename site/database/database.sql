@@ -44,7 +44,7 @@ CREATE TABLE version(
 
 DROP VIEW IF EXISTS complete_table;
 CREATE OR REPLACE VIEW complete_table AS (
-    SELECT nom_langue,version.traduction,version.date_creation,data.sens,data.id_data,data.numero_page,data.audio_link,livre.nom_livre,version.id_version
+    SELECT nom_langue,version.traduction,version.date_creation,data.sens,data.id_data,data.numero_page,data.audio_link,livre.nom_livre,version.id_version,data.error
         FROM ((langue JOIN data ON langue.id_langue = data.id_langue)JOIN livre ON data.id_livre = livre.id_livre) JOIN version ON data.id_data = version.id_data 
 );
 

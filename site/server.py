@@ -43,8 +43,8 @@ def fetch_search():  # pylint: disable=missing-function-docstring
             offset=offset,
         )
         return jsonify({"table": res[0], "count": res[1], "verif": "ok"})
-    except Exception as e:
-        print(e)
+    except Exception as error:  # pylint: disable=broad-except
+        print(error)
         return jsonify({"verif": "error"})
 
 

@@ -87,7 +87,8 @@ CREATE OR REPLACE FUNCTION search(keyword version.traduction%TYPE,engine text, l
         traduction version.traduction%TYPE,
         sens data.sens%TYPE,
         numeroPage int,
-        nom_livre text
+        nom_livre text,
+        audio_link text
     )
     LANGUAGE plpgsql AS
     $funcSearch$
@@ -97,17 +98,17 @@ CREATE OR REPLACE FUNCTION search(keyword version.traduction%TYPE,engine text, l
             WITH result_research AS (
                 SELECT * FROM get_result(keyword,engine,langue_base,offset_num)
             )
-            SELECT data_current.nom_langue,data_current.traduction,data_current.sens,data_current.numero_page , data_current.nom_livre
+            SELECT data_current.nom_langue,data_current.traduction,data_current.sens,data_current.numero_page , data_current.nom_livre , data_current.audio_link
                             FROM data_current
                             WHERE data_current.sens in (SELECT data.sens FROM data WHERE data.id_data IN 
                                 (SELECT * FROM get_result(keyword,engine,langue_base,offset_num))) ORDER BY data_current.sens;
         ELSE
             RETURN QUERY
-                SELECT data_current.nom_langue,data_current.traduction,data_current.sens,data_current.numero_page , data_current.nom_livre
+                SELECT data_current.nom_langue,data_current.traduction,data_current.sens,data_current.numero_page , data_current.nom_livre , data_current.audio_link
                                 FROM data_current
-                                WHERE (data.id_langue=(select get_id_langue(langue_base))
-                                        OR data.id_langue=(select get_id_langue(langue_target)))
-                                AND data.sens in (SELECT data.sens FROM data WHERE data.id_data IN 
+                                WHERE data_current.nom_langue=langue_base
+                                        OR data_current.nom_langue=langue_target
+                                AND data_current.sens in (SELECT data.sens FROM data WHERE data.id_data IN 
                                         (SELECT * FROM get_result(keyword,engine,langue_base,offset_num))) ORDER BY data_current.sens;    
         END IF;
         END

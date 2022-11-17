@@ -29,33 +29,57 @@ export function createTableResult(
 	resultTitle.appendChild(trTitle);
 	resultSearch.innerHTML = "";
 	for (let ligne of tab) {
-		let tr = document.createElement("tr");
-		let [obj] = ligne.values();
-		let sens = obj.sens;
-		let td;
-		for (let langue of listeLangue) {
-			td = document.createElement("td");
-			if (ligne.has(langue)) {
-				td.innerHTML = `<a class="linkHistory" target="_blank" rel="noopener noreferrer" href="historique?sens=${sens}&langue=${langue}">${
-					ligne.get(langue).text
-				}</a>`;
-			}
-			td.sens = sens;
-			td.langue = langue;
-			td.addEventListener("keypress", keyHandler);
-			tr.appendChild(td);
-		}
-		if (affichePage) {
-			td = document.createElement("td");
-			let num = ligne.get(langueBase).numeroPage;
-			let livre = ligne.get(langueBase).nomLivre;
-			td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}&showBox=false">${num}</a>`;
-			tr.appendChild(td);
-		}
+		if (ligne !== undefined) {
+			let tr = document.createElement("tr");
+			let [obj] = ligne.values();
+			let sens = obj.sens;
+			let td;
+			for (let langue of listeLangue) {
+				td = document.createElement("td");
+				if (ligne.has(langue)) {
+					td.innerHTML = `<a class="linkHistory" target="_blank" rel="noopener noreferrer" href="historique?sens=${sens}&langue=${langue}">${
+						ligne.get(langue).text
+					}</a>`;
+					if (
+						ligne.get(langue).audioLink !== null &&
+						ligne.get(langue).audioLink !== undefined
+					) {
+						const button = document.createElement("button");
+						button.innerHTML = '<i class="fa fa-volume-up"></i>';
+						button.audioLink = ligne.get(langue).audioLink;
+						button.onclick = playSound;
+						td.appendChild(button);
+					}
+				}
 
-		resultSearch.appendChild(tr);
+				td.sens = sens;
+				td.langue = langue;
+				td.addEventListener("keypress", keyHandler);
+				tr.appendChild(td);
+			}
+			if (affichePage) {
+				td = document.createElement("td");
+				let num = ligne.get(langueBase).numeroPage;
+				let livre = ligne.get(langueBase).nomLivre;
+				td.innerHTML = `<a class="linkPdf" target="_blank" rel="noopener noreferrer" href="correction-page?livre=${livre}&page=${num}&showBox=false">${num}</a>`;
+				tr.appendChild(td);
+			}
+
+			resultSearch.appendChild(tr);
+		}
 	}
 }
+
+function playSound(event) {
+	let button = event.target;
+	if (button.tagName !== "BUTTON") {
+		button = button.parentElement;
+	}
+	playSound?.currentSound?.pause();
+	playSound.currentSound = new Audio("/static/audio/" + button.audioLink);
+	playSound.currentSound.play();
+}
+
 export function arrayToObject(arr, affichePage) {
 	if (affichePage === undefined) {
 		affichePage = true;
@@ -77,6 +101,7 @@ export function arrayToObject(arr, affichePage) {
 				sens: element[2],
 				numeroPage: element[3],
 				nomLivre: element[4],
+				audioLink: element[5],
 			});
 		} else {
 			tmp.set(element[0], {
@@ -121,6 +146,11 @@ export function listernerOnchangeTable(table, editButton) {
 	editButton.onclick = (_) => {
 		for (let td of document.querySelectorAll("td")) {
 			td.contentEditable = true;
+			for (let elem of td.children) {
+				if (elem.tagName === "BUTTON") {
+					elem.remove();
+				}
+			}
 		}
 	};
 	table.addEventListener("keyup", (event) => {

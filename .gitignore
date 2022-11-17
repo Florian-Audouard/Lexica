@@ -2,6 +2,7 @@ full-pdf
 test*.py
 lib
 output
+audio
 
 # documents sources
 *.pdf
