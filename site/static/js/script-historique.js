@@ -1,7 +1,7 @@
 const urlParam = new URLSearchParams(window.location.search);
 const langue = urlParam.get("langue");
 const sens = urlParam.get("sens");
-const ALLOWED_EXTENTION = ["mp3"];
+const ALLOWED_EXTENTION = ["mp3", "wav"];
 
 presentation = document.querySelector("#presentation");
 presentation.innerText = `Historique du sens ${sens} en ${langue}`;
