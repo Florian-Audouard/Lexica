@@ -3,6 +3,7 @@
 Returns:
     _type_: _description_
 """
+from itertools import count
 import os
 import urllib.parse
 import psycopg
@@ -42,6 +43,7 @@ def reset_table():  # pylint: disable=missing-function-docstring
 
 
 def add_langue(cur, langue, livre):  # pylint: disable=missing-function-docstring
+    print(livre)
     cur.execute(
         "INSERT INTO langue (nom_langue) VALUES (%(langue)s);", {"langue": langue}
     )
@@ -53,7 +55,7 @@ def add_langue(cur, langue, livre):  # pylint: disable=missing-function-docstrin
 
 
 def hienghene_process(
-    cur, line, livre, count
+    cur, line, _, livre, count
 ):  # pylint: disable=missing-function-docstring
     liste_line = line.split(";")
     num_page = liste_line[len(liste_line) - 1]
@@ -70,6 +72,29 @@ def hienghene_process(
             int_error = 0
             if error == "True":
                 int_error = 1
+            requete += f"""
+                ((select get_id_langue('{langue}')),'{count}','{num_page}',(select get_id_livre('{livre}')),{int_error}),"""
+            requete2 += f"""
+                        ((select get_id_data({count},'{langue}')),'{text}'),"""
+
+    requete = requete[0 : len(requete) - 1] + ";"
+    requete2 = requete2[0 : len(requete2) - 1] + ";"
+    cur.execute(requete)
+    cur.execute(requete2)
+
+
+def unique_langue_process(cur, line, liste_langue, livre, count):
+    liste_line = line.split(";")
+    num_page = liste_line[len(liste_line) - 1]
+    del liste_line[len(liste_line) - 1]
+    requete = "INSERT INTO data (id_langue , sens , numero_page,id_livre,error) VALUES"
+    requete2 = "INSERT INTO version (id_data,traduction) VALUES"
+    for index, element in enumerate(liste_line):
+        text = element
+        if text != "":
+            langue = liste_langue[index]
+            text = text.replace("'", "''")
+            int_error = 0
             requete += f"""
                 ((select get_id_langue('{langue}')),'{count}','{num_page}',(select get_id_livre('{livre}')),{int_error}),"""
             requete2 += f"""
@@ -286,39 +311,51 @@ def get_error():  # pylint: disable=missing-function-docstring
 
 
 def insert_from_csv(
-    filename, liste_langue, add_line_func
+    cur, filename, liste_langue, add_line_func
 ):  # pylint: disable=missing-function-docstring
     filename_csv = "release/" + filename + ".csv"
-    reset_table()
 
+    cur.execute(
+        "INSERT INTO livre (nom_livre) VALUES (%(filename)s);",
+        {"filename": filename},
+    )
+    for langue in liste_langue:
+        add_langue(cur, langue, filename)
+    return
+    with open(filename_csv, "r", encoding="utf-8") as file:
+        liste_line = file.readlines()
+        with tqdm(total=len(liste_line)) as pbar:
+            global count_sens
+            for line in liste_line:
+                add_line_func(cur, line, liste_langue, filename, count_sens)
+                count_sens += 1
+                pbar.update()
+
+
+count_sens = 0
+if __name__ == "__main__":
+    reset_table()
     with psycopg.connect(CONN_PARAMS) as conn:  # pylint: disable=not-context-manager
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO livre (nom_livre) VALUES (%(filename)s)",
-                {"filename": filename},
+            insert_from_csv(
+                cur,
+                "le_nyelayu_de_balade",
+                [
+                    "nyelayu",
+                    "français",
+                ],
+                unique_langue_process,
             )
-            for langue in liste_langue:
-                add_langue(cur, langue, filename)
-            with open(filename_csv, "r", encoding="utf-8") as file:
-                liste_line = file.readlines()
-                with tqdm(total=len(liste_line)) as pbar:
-                    count = 0
-                    for line in liste_line:
-                        add_line_func(cur, line, filename, count)
-                        count += 1
-                        pbar.update()
-
-
-if __name__ == "__main__":
-    insert_from_csv(
-        "hienghene-Fr",
-        [
-            "français",
-            "pije",
-            "fwâi",
-            "nemi 1 (Temala)",
-            "nemi 2 (côte est)",
-            "jawe",
-        ],
-        hienghene_process,
-    )
+            insert_from_csv(
+                cur,
+                "hienghene-Fr",
+                [
+                    "français",
+                    "pije",
+                    "fwâi",
+                    "nemi 1 (Temala)",
+                    "nemi 2 (côte est)",
+                    "jawe",
+                ],
+                hienghene_process,
+            )

@@ -88,6 +88,11 @@ def index():  # pylint: disable=missing-function-docstring
     return render_template("home.html")
 
 
+@app.route("/tmp")
+def tmp():  # pylint: disable=missing-function-docstring
+    return render_template("tmp.html")
+
+
 @app.route("/historique")
 def historique():  # pylint: disable=missing-function-docstring
     return render_template("historique.html")
